@@ -49,8 +49,6 @@ import (
 	"unsafe"
 )
 
-const NSUTF8StringEncoding = 4
-
 // A Selector represents an Objective-C selector.
 type Selector uintptr
 
