@@ -1,11 +1,11 @@
 package foundation
 
-import (
-	"log"
-	"testing"
-)
+import "testing"
 
 func TestString(t *testing.T) {
-	str := NSStringFromString("hello, world!")
-	log.Printf("%v", str)
+	hi := "hello, world!"
+	str := NSStringFromString(hi)
+	if str.String() != hi {
+		t.Error("mismatch")
+	}
 }

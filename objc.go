@@ -47,6 +47,7 @@ void *GoObjc_RegisterSelector(char *name) {
 import "C"
 import (
 	"unsafe"
+	"reflect"
 )
 
 // A Selector represents an Objective-C selector.
@@ -66,14 +67,15 @@ func (s Selector) IsNil() bool {
 type Class struct {
 }
 
-// An Object represents an Objective-C object.
+// An Object represents an Objective-C object, but it also implements convenience
+// methods represent methods usually found on Foundation's NSObject class.
 type Object struct {
 	isa *Class
 }
 
 // Lookup a Class by name
 func GetClass(name string) *Object {
-	 return (*Object)(C.GoObjc_GetClass(C.CString(name)))
+	return (*Object)(C.GoObjc_GetClass(C.CString(name)))
 }
 
 // Return the Object as a uintptr.
@@ -95,46 +97,82 @@ func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
 		return nil
 	}
 
-	passableArgs := make([]uintptr, len(args))
+	msgArgs := make([]uintptr, 0, 2*len(args))
 	for i, arg := range args {
 		switch t := arg.(type) {
 		case uintptr:
-			passableArgs[i] = t
-			break
+			msgArgs = append(msgArgs, t)
 		case int:
-			passableArgs[i] = uintptr(t)
+			msgArgs = append(msgArgs, uintptr(t))
+		case uint:
+			msgArgs = append(msgArgs, uintptr(t))
+		case int8:
+			msgArgs = append(msgArgs, uintptr(t))
+		case uint8:
+			msgArgs = append(msgArgs, uintptr(t))
+		case int16:
+			msgArgs = append(msgArgs, uintptr(t))
+		case uint16:
+			msgArgs = append(msgArgs, uintptr(t))
+		case int32:
+			msgArgs = append(msgArgs, uintptr(t))
+		case uint32:
+			msgArgs = append(msgArgs, uintptr(t))
+		case int64:
+			msgArgs = append(msgArgs, uintptr(t))
+		case uint64:
+			msgArgs = append(msgArgs, uintptr(t))
+		case bool:
+			if t {
+				msgArgs = append(msgArgs, uintptr(1))
+			} else {
+				msgArgs = append(msgArgs, uintptr(0))
+			}
+		case Struct:
+			packedArgs := t.PackStruct64()
+			for _, a := range packedArgs {
+				msgArgs = append(msgArgs, uintptr(a))
+			}
 		default:
-			panic("unhandled kind")
+			val := reflect.ValueOf(args[i])
+			switch val.Kind() {
+			case reflect.Ptr:
+				msgArgs = append(msgArgs, val.Pointer())
+			case reflect.Uintptr:
+				msgArgs = append(msgArgs, uintptr(val.Uint()))
+			default:
+				panic("unhandled kind")
+			}
 		}	
 	}
 
-	switch len(args) {
+	switch len(msgArgs) {
 	case 0:
 		return (*Object)(C.GoObjc_SendMsg0(unsafe.Pointer(obj), unsafe.Pointer(sel)))
 	case 1:
 		return (*Object)(C.GoObjc_SendMsg1(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0])))
+							C.ulong(msgArgs[0])))
 	case 2:
 		return (*Object)(C.GoObjc_SendMsg2(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0]), C.ulong(passableArgs[1])))
+							C.ulong(msgArgs[0]), C.ulong(msgArgs[1])))
 	case 3:
 		return (*Object)(C.GoObjc_SendMsg3(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0]), C.ulong(passableArgs[1]),
-							C.ulong(passableArgs[2])))
+							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
+							C.ulong(msgArgs[2])))
 	case 4:
 		return (*Object)(C.GoObjc_SendMsg4(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0]), C.ulong(passableArgs[1]),
-							C.ulong(passableArgs[2]), C.ulong(passableArgs[3])))
+							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
+							C.ulong(msgArgs[2]), C.ulong(msgArgs[3])))
 	case 5:
 		return (*Object)(C.GoObjc_SendMsg5(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0]), C.ulong(passableArgs[1]),
-							C.ulong(passableArgs[2]), C.ulong(passableArgs[3]),
-							C.ulong(passableArgs[4])))
+							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
+							C.ulong(msgArgs[2]), C.ulong(msgArgs[3]),
+							C.ulong(msgArgs[4])))
 	case 6:
 		return (*Object)(C.GoObjc_SendMsg6(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(passableArgs[0]), C.ulong(passableArgs[1]),
-							C.ulong(passableArgs[2]), C.ulong(passableArgs[3]),
-							C.ulong(passableArgs[4]), C.ulong(passableArgs[5])))
+							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
+							C.ulong(msgArgs[2]), C.ulong(msgArgs[3]),
+							C.ulong(msgArgs[4]), C.ulong(msgArgs[5])))
 	}
 
 	panic("unimplemented amount of SendMsg args")
@@ -162,7 +200,7 @@ func (obj *Object) Release() *Object {
 
 // Send the "autorelease" message to the Object.
 func (obj *Object) AutoRelease() *Object {
-	return obj.SendMsg("release")
+	return obj.SendMsg("autorelease")
 }
 
 // Send the "copy" message to the Object.
