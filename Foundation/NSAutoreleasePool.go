@@ -1,6 +1,6 @@
 package foundation
 
-import "github.com/mkrautz/go-objc"
+import "github.com/mkrautz/objc"
 
 type NSAutoreleasePool struct {
 	*objc.Object

@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "github.com/mkrautz/go-objc/AppKit"
-	. "github.com/mkrautz/go-objc/Foundation"
+	. "github.com/mkrautz/objc/AppKit"
+	. "github.com/mkrautz/objc/Foundation"
 	"runtime"
 )
 

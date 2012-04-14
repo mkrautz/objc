@@ -1,8 +1,8 @@
 package appkit
 
 import (
-	"github.com/mkrautz/go-objc"
-	. "github.com/mkrautz/go-objc/Foundation"
+	"github.com/mkrautz/objc"
+	. "github.com/mkrautz/objc/Foundation"
 )
 
 const (

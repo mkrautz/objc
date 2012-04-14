@@ -1,7 +1,7 @@
 package foundation
 
 import (
-	"github.com/mkrautz/go-objc"
+	"github.com/mkrautz/objc"
 	"reflect"
 	"unsafe"
 )

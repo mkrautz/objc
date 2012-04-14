@@ -1,6 +1,6 @@
 package appkit
 
-import "github.com/mkrautz/go-objc"
+import "github.com/mkrautz/objc"
 
 type NSApplication struct {
 	*objc.Object
