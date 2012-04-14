@@ -16,10 +16,10 @@ void *GoObjc_RegisterSelector(char *name) {
 */
 import "C"
 import (
-	"unsafe"
-	"reflect"
-	"math"
 	"github.com/mkrautz/variadic"
+	"math"
+	"reflect"
+	"unsafe"
 )
 
 // A Selector represents an Objective-C selector.
@@ -32,7 +32,7 @@ func SelectorName(name string) Selector {
 
 // Checks whether the Selector s is nil.
 func (s Selector) IsNil() bool {
-	return uintptr(s) == 0 
+	return uintptr(s) == 0
 }
 
 // A Class represents an Objective-C class.
@@ -62,17 +62,17 @@ func unpackStruct(val reflect.Value) []uintptr {
 		v := val.Field(i)
 		kind := v.Kind()
 		switch kind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				memArgs = append(memArgs, uintptr(v.Int()))
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				memArgs = append(memArgs, uintptr(v.Uint()))
-			case reflect.Float32, reflect.Float64:
-				memArgs = append(memArgs, uintptr(math.Float64bits(v.Float())))
-			case reflect.Ptr:
-				memArgs = append(memArgs, val.Pointer())
-			case reflect.Struct:
-				args := unpackStruct(v)
-				memArgs = append(memArgs, args...)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			memArgs = append(memArgs, uintptr(v.Int()))
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			memArgs = append(memArgs, uintptr(v.Uint()))
+		case reflect.Float32, reflect.Float64:
+			memArgs = append(memArgs, uintptr(math.Float64bits(v.Float())))
+		case reflect.Ptr:
+			memArgs = append(memArgs, val.Pointer())
+		case reflect.Struct:
+			args := unpackStruct(v)
+			memArgs = append(memArgs, args...)
 		}
 	}
 	return memArgs

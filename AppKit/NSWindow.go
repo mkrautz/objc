@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	NSBorderlessWindowMask         = 0
-	NSTitledWindowMask             = 1 << 0
-	NSClosableWindowMask           = 1 << 1
-	NSMiniaturizableWindowMask     = 1 << 2
-	NSResizableWindowMask          = 1 << 3
-	NSTexturedBackgroundWindowMask = 1 << 8
+	NSBorderlessWindowMask         NSUInteger = 0
+	NSTitledWindowMask             NSUInteger = 1 << 0
+	NSClosableWindowMask           NSUInteger = 1 << 1
+	NSMiniaturizableWindowMask     NSUInteger = 1 << 2
+	NSResizableWindowMask          NSUInteger = 1 << 3
+	NSTexturedBackgroundWindowMask NSUInteger = 1 << 8
 )
 
 const (
@@ -29,7 +29,7 @@ type NSWindow struct {
 func NewNSWindow(rect NSRect, windowStyle NSUInteger, bufferingType NSBackingStoreType, deferCreation bool) NSWindow {
 	obj := objc.GetClass("NSWindow").Alloc().
 		SendMsg("initWithContentRect:styleMask:backing:defer:",
-			rect, windowStyle, bufferingType, deferCreation)
+		rect, windowStyle, bufferingType, deferCreation)
 	return NSWindow{obj}
 }
 

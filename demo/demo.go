@@ -17,7 +17,8 @@ func main() {
 	app := NSSharedApplication()
 	_ = app
 
-	window := NewNSWindow(NSRectMake(0, 0, 500, 500), 0, NSBackingStoreBuffered, false)
+	mask := NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
+	window := NewNSWindow(NSRectMake(0, 0, 500, 500), mask, NSBackingStoreBuffered, false)
 	window.AutoRelease()
 	window.Display()
 	window.MakeKeyAndOrderFront(window.Object)
