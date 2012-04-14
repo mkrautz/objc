@@ -48,3 +48,11 @@ func (win NSWindow) SetTitle(title string) {
 func (win NSWindow) Title() string {
 	return win.SendMsg("title").String()
 }
+
+func (win NSWindow) SetContentView(view *objc.Object) {
+	win.SendMsg("setContentView:", view)
+}
+
+func (win NSWindow) ContentView() *objc.Object {
+	return win.SendMsg("contentView")
+}

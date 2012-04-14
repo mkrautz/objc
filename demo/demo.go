@@ -23,5 +23,11 @@ func main() {
 	window.MakeKeyAndOrderFront(window.Object)
 	window.SetTitle("Go Demo")
 
+	// Add a gopher!
+	gopherImg := NSImageNamed("gopher")
+	imgView := NewNSImageView()
+	imgView.SetImage(gopherImg)
+	window.SetContentView(imgView.Object)
+
 	app.Run()
 }
