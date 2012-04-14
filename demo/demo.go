@@ -15,7 +15,6 @@ func main() {
 	defer pool.Release()
 
 	app := NSSharedApplication()
-	_ = app
 
 	mask := NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	window := NewNSWindow(NSRectMake(0, 0, 500, 500), mask, NSBackingStoreBuffered, false)
@@ -23,6 +22,5 @@ func main() {
 	window.Display()
 	window.MakeKeyAndOrderFront(window.Object)
 
-	loop := NSRunLoopMain()
-	loop.Run()
+	app.Run()
 }

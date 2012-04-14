@@ -14,8 +14,7 @@ int main() {
 	[win display];	
 	[win makeKeyAndOrderFront:win];
 
-	NSRunLoop *rl = [NSRunLoop mainRunLoop];
-	[rl run];
+	[app run];
 
 	[pool release];
 
