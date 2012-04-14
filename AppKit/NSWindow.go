@@ -40,3 +40,11 @@ func (win NSWindow) Display() {
 func (win NSWindow) MakeKeyAndOrderFront(sender *objc.Object) {
 	win.SendMsg("makeKeyAndOrderFront:", sender)
 }
+
+func (win NSWindow) SetTitle(title string) {
+	win.SendMsg("setTitle:", NSStringFromString(title).Object)
+}
+
+func (win NSWindow) Title() string {
+	return win.SendMsg("title").String()
+}

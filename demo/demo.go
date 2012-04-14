@@ -21,6 +21,7 @@ func main() {
 	window.AutoRelease()
 	window.Display()
 	window.MakeKeyAndOrderFront(window.Object)
+	window.SetTitle("Go Demo")
 
 	app.Run()
 }

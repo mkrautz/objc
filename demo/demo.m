@@ -13,6 +13,7 @@ int main() {
 	[win autorelease];
 	[win display];	
 	[win makeKeyAndOrderFront:win];
+	[win setTitle:@"Go Demo"];
 
 	[app run];
 
