@@ -3,7 +3,12 @@ package main
 import (
 	. "github.com/mkrautz/go-objc/AppKit"
 	. "github.com/mkrautz/go-objc/Foundation"
+	"runtime"
 )
+
+func init() {
+	defer runtime.LockOSThread()
+}
 
 func main() {
 	pool := NewNSAutoreleasePool()

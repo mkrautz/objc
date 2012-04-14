@@ -6,38 +6,8 @@ package objc
 #include <objc/runtime.h>
 #include <objc/message.h>
 
-#define ulong unsigned long
-
 void *GoObjc_GetClass(char *name) {
 	return (void *) objc_getClass(name);
-}
-
-void *GoObjc_SendMsg0(void *receiver, void *selector) {
-	return (void *) objc_msgSend(receiver, selector);
-}
-
-void *GoObjc_SendMsg1(void *receiver, void *selector, ulong a1) {
-	return (void *) objc_msgSend(receiver, selector, a1);
-}
-
-void *GoObjc_SendMsg2(void *receiver, void *selector, ulong a1, ulong a2) {
-	return (void *) objc_msgSend(receiver, selector, a1, a2);
-}
-
-void *GoObjc_SendMsg3(void *receiver, void *selector, ulong a1, ulong a2, ulong a3) {
-	return (void *) objc_msgSend(receiver, selector, a1, a2, a3);
-}
-
-void *GoObjc_SendMsg4(void *receiver, void *selector, ulong a1, ulong a2, ulong a3, ulong a4) {
-	return (void *) objc_msgSend(receiver, selector, a1, a2, a3, a4);
-}
-
-void *GoObjc_SendMsg5(void *receiver, void *selector, ulong a1, ulong a2, ulong a3, ulong a4, ulong a5) {
-	return (void *) objc_msgSend(receiver, selector, a1, a2, a3, a4, a5);
-}
-
-void *GoObjc_SendMsg6(void *receiver, void *selector, ulong a1, ulong a2, ulong a3, ulong a4, ulong a5, ulong a6) {
-	return (void *) objc_msgSend(receiver, selector, a1, a2, a3, a4, a5, a6);
 }
 
 void *GoObjc_RegisterSelector(char *name) {
@@ -48,6 +18,8 @@ import "C"
 import (
 	"unsafe"
 	"reflect"
+	"math"
+	"github.com/mkrautz/variadic"
 )
 
 // A Selector represents an Objective-C selector.
@@ -84,6 +56,28 @@ func (obj *Object) Pointer() uintptr {
 	return uintptr(unsafe.Pointer(obj))
 }
 
+func unpackStruct(val reflect.Value) []uintptr {
+	memArgs := []uintptr{}
+	for i := 0; i < val.NumField(); i++ {
+		v := val.Field(i)
+		kind := v.Kind()
+		switch kind {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				memArgs = append(memArgs, uintptr(v.Int()))
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				memArgs = append(memArgs, uintptr(v.Uint()))
+			case reflect.Float32, reflect.Float64:
+				memArgs = append(memArgs, uintptr(math.Float64bits(v.Float())))
+			case reflect.Ptr:
+				memArgs = append(memArgs, val.Pointer())
+			case reflect.Struct:
+				args := unpackStruct(v)
+				memArgs = append(memArgs, args...)
+		}
+	}
+	return memArgs
+}
+
 // Send a message to an object.
 func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
 	// Keep ObjC semantics: messages can be sent to nil objects,
@@ -97,85 +91,85 @@ func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
 		return nil
 	}
 
-	msgArgs := make([]uintptr, 0, 2*len(args))
+	intArgs := []uintptr{}
+	floatArgs := []uintptr{}
+	memArgs := []uintptr{}
+
 	for i, arg := range args {
 		switch t := arg.(type) {
 		case uintptr:
-			msgArgs = append(msgArgs, t)
+			intArgs = append(intArgs, t)
 		case int:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case uint:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case int8:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case uint8:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case int16:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case uint16:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case int32:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case uint32:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case int64:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case uint64:
-			msgArgs = append(msgArgs, uintptr(t))
+			intArgs = append(intArgs, uintptr(t))
 		case bool:
 			if t {
-				msgArgs = append(msgArgs, uintptr(1))
+				intArgs = append(intArgs, uintptr(1))
 			} else {
-				msgArgs = append(msgArgs, uintptr(0))
+				intArgs = append(intArgs, uintptr(0))
 			}
-		case Struct:
-			packedArgs := t.PackStruct64()
-			for _, a := range packedArgs {
-				msgArgs = append(msgArgs, uintptr(a))
-			}
+		case float32:
+			floatArgs = append(floatArgs, uintptr(math.Float32bits(t)))
+		case float64:
+			floatArgs = append(floatArgs, uintptr(math.Float64bits(t)))
 		default:
 			val := reflect.ValueOf(args[i])
 			switch val.Kind() {
 			case reflect.Ptr:
-				msgArgs = append(msgArgs, val.Pointer())
+				intArgs = append(intArgs, val.Pointer())
 			case reflect.Uintptr:
-				msgArgs = append(msgArgs, uintptr(val.Uint()))
+				intArgs = append(intArgs, uintptr(val.Uint()))
+			case reflect.Struct:
+				args := unpackStruct(val)
+				memArgs = append(memArgs, args...)
 			default:
 				panic("unhandled kind")
 			}
-		}	
+		}
 	}
 
-	switch len(msgArgs) {
-	case 0:
-		return (*Object)(C.GoObjc_SendMsg0(unsafe.Pointer(obj), unsafe.Pointer(sel)))
-	case 1:
-		return (*Object)(C.GoObjc_SendMsg1(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0])))
-	case 2:
-		return (*Object)(C.GoObjc_SendMsg2(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0]), C.ulong(msgArgs[1])))
-	case 3:
-		return (*Object)(C.GoObjc_SendMsg3(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
-							C.ulong(msgArgs[2])))
-	case 4:
-		return (*Object)(C.GoObjc_SendMsg4(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
-							C.ulong(msgArgs[2]), C.ulong(msgArgs[3])))
-	case 5:
-		return (*Object)(C.GoObjc_SendMsg5(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
-							C.ulong(msgArgs[2]), C.ulong(msgArgs[3]),
-							C.ulong(msgArgs[4])))
-	case 6:
-		return (*Object)(C.GoObjc_SendMsg6(unsafe.Pointer(obj), unsafe.Pointer(sel),
-							C.ulong(msgArgs[0]), C.ulong(msgArgs[1]),
-							C.ulong(msgArgs[2]), C.ulong(msgArgs[3]),
-							C.ulong(msgArgs[4]), C.ulong(msgArgs[5])))
+	fc := variadic.NewFunctionCall("objc_msgSend")
+	fc.Words[0] = obj.Pointer()
+	fc.Words[1] = uintptr(sel)
+
+	if len(memArgs) > 0 {
+		fc.Memory = unsafe.Pointer(&memArgs[0])
+		fc.NumMemory = int64(len(memArgs))
 	}
 
-	panic("unimplemented amount of SendMsg args")
+	if len(intArgs) > 4 {
+		panic("too many int args")
+	}
+	if len(floatArgs) > 8 {
+		panic("too many float args")
+	}
+
+	for i, v := range intArgs {
+		fc.Words[i+2] = v
+	}
+
+	for i, v := range floatArgs {
+		fc.Words[6+i] = v
+	}
+
+	return (*Object)(unsafe.Pointer(fc.Call()))
 }
 
 // Send the "alloc" message to the Object.

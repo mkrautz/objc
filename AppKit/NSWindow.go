@@ -26,10 +26,10 @@ type NSWindow struct {
 	*objc.Object
 }
 
-func NewNSWindow(contentRect NSRect, windowStyle NSUInteger, bufferingType NSBackingStoreType, deferCreation bool) NSWindow {
+func NewNSWindow(rect NSRect, windowStyle NSUInteger, bufferingType NSBackingStoreType, deferCreation bool) NSWindow {
 	obj := objc.GetClass("NSWindow").Alloc().
 		SendMsg("initWithContentRect:styleMask:backing:defer:",
-		contentRect, windowStyle, bufferingType, deferCreation)
+			rect, windowStyle, bufferingType, deferCreation)
 	return NSWindow{obj}
 }
 
