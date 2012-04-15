@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/mkrautz/objc"
 	. "github.com/mkrautz/objc/AppKit"
 	. "github.com/mkrautz/objc/Foundation"
 	"runtime"
@@ -13,6 +14,18 @@ func init() {
 func main() {
 	pool := NewNSAutoreleasePool()
 	defer pool.Release()
+
+	// Create a new ObjectiveC class, GOAppDelegate
+	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate")
+	// Add a method to it; sayHello
+	c.AddMethod(objc.SelectorName("sayHello"), objc.EncVoid+objc.EncId+objc.EncSelector)
+	// Register the class
+	objc.RegisterClass(c)
+
+	// Instantiate the class, and call our new method.
+	// For now, this will call an internal method in the objc package.
+	o := objc.GetClass("GOAppDelegate").SendMsg("alloc").SendMsg("init")
+	o.SendMsg("sayHello")
 
 	app := NSSharedApplication()
 

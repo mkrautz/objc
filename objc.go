@@ -13,6 +13,18 @@ void *GoObjc_GetClass(char *name) {
 void *GoObjc_RegisterSelector(char *name) {
 	return (void *) sel_registerName(name);
 }
+
+void *GoObjc_AllocateClassPair(void *superCls, char *name) {
+	return (void *) objc_allocateClassPair(superCls, name, 0);
+}
+
+void GoObjc_ClassAddMethod(void *subCls, void *sel, void *imp, char *typ) {
+	class_addMethod(subCls, sel, imp, typ);
+}
+
+void GoObjc_RegisterClass(void *cls) {
+	objc_registerClassPair(cls);
+}
 */
 import "C"
 import (
@@ -34,6 +46,23 @@ func (s Selector) IsNil() bool {
 
 // A Class represents an Objective-C class.
 type Class struct {
+}
+
+// NewClass returns a new class that is a sublcass of
+// the specified super class.
+func NewClass(superClass *Object, name string) *Object {
+	return (*Object)(C.GoObjc_AllocateClassPair(unsafe.Pointer(superClass), C.CString(name)))
+}
+
+// RegisterClass registers an object representing a class
+// with the Objective-C runtine.
+func RegisterClass(class *Object) {
+	C.GoObjc_RegisterClass(unsafe.Pointer(class))	
+}
+
+// AddMethod adds a new method to a class.
+func (cls *Object) AddMethod(s Selector, typeInfo string) {
+	C.GoObjc_ClassAddMethod(unsafe.Pointer(cls), unsafe.Pointer(uintptr(s)), methodCallTarget(), C.CString(typeInfo))
 }
 
 // An Object represents an Objective-C object, but it also implements convenience
