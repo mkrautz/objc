@@ -23,7 +23,7 @@ const (
 type NSBackingStoreType NSUInteger
 
 type NSWindow struct {
-	*objc.Object
+	objc.Object
 }
 
 func NewNSWindow(rect NSRect, windowStyle NSUInteger, bufferingType NSBackingStoreType, deferCreation bool) NSWindow {
@@ -37,7 +37,7 @@ func (win NSWindow) Display() {
 	win.SendMsg("display")
 }
 
-func (win NSWindow) MakeKeyAndOrderFront(sender *objc.Object) {
+func (win NSWindow) MakeKeyAndOrderFront(sender objc.Object) {
 	win.SendMsg("makeKeyAndOrderFront:", sender)
 }
 
@@ -49,10 +49,10 @@ func (win NSWindow) Title() string {
 	return win.SendMsg("title").String()
 }
 
-func (win NSWindow) SetContentView(view *objc.Object) {
+func (win NSWindow) SetContentView(view objc.Object) {
 	win.SendMsg("setContentView:", view)
 }
 
-func (win NSWindow) ContentView() *objc.Object {
+func (win NSWindow) ContentView() objc.Object {
 	return win.SendMsg("contentView")
 }

@@ -18,7 +18,7 @@ func main() {
 	// Create a new ObjectiveC class, GOAppDelegate
 	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate")
 	// Add a method to it; sayHello
-	c.AddMethod(objc.SelectorName("sayHello"), objc.EncVoid+objc.EncId+objc.EncSelector)
+	c.AddMethod("sayHello", objc.EncVoid+objc.EncId+objc.EncSelector)
 	// Register the class
 	objc.RegisterClass(c)
 
@@ -33,14 +33,14 @@ func main() {
 	window := NewNSWindow(NSRectMake(0, 0, 500, 500), mask, NSBackingStoreBuffered, false)
 	window.AutoRelease()
 	window.Display()
-	window.MakeKeyAndOrderFront(window.Object)
+	window.MakeKeyAndOrderFront(window)
 	window.SetTitle("Go Demo")
 
 	// Add a gopher!
 	gopherImg := NSImageNamed("gopher")
 	imgView := NewNSImageView()
 	imgView.SetImage(gopherImg)
-	window.SetContentView(imgView.Object)
+	window.SetContentView(imgView)
 
 	app.Run()
 }

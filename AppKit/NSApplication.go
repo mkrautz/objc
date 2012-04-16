@@ -3,7 +3,7 @@ package appkit
 import "github.com/mkrautz/objc"
 
 type NSApplication struct {
-	*objc.Object
+	objc.Object
 }
 
 func NSSharedApplication() NSApplication {

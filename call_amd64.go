@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-type Frame struct {
+type amd64frame struct {
 	rdi  uintptr
 	rsi  uintptr
 	rdx  uintptr
@@ -32,7 +32,7 @@ func methodCallTarget() unsafe.Pointer {
 
 //export goMethodCallEntryPoint
 func goMethodCallEntryPoint(p uintptr) uintptr {
-	frame := (*Frame)(unsafe.Pointer(p))
+	frame := (*amd64frame)(unsafe.Pointer(p))
 	log.Printf("obj = 0x%x", frame.rdi)
 	log.Printf("sel = 0x%x", frame.rsi)
 	return 0

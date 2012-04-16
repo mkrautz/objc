@@ -29,16 +29,15 @@ func unpackStruct(val reflect.Value) []uintptr {
 	return memArgs
 }
 
-// Send a message to an object.
-func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
+func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	// Keep ObjC semantics: messages can be sent to nil objects,
 	// but the response is nil.
-	if obj == nil {
+	if uintptr(obj) == 0 {
 		return nil
 	}
 
-	sel := SelectorName(selectorName)
-	if sel.IsNil() {
+	sel := selectorWithName(selector)
+	if sel == nil {
 		return nil
 	}
 
@@ -48,6 +47,8 @@ func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
 
 	for i, arg := range args {
 		switch t := arg.(type) {
+		case Object:
+			intArgs = append(intArgs, t.Pointer())
 		case uintptr:
 			intArgs = append(intArgs, t)
 		case int:
@@ -120,5 +121,5 @@ func (obj *Object) SendMsg(selectorName string, args ...interface{}) *Object {
 		fc.Words[6+i] = v
 	}
 
-	return (*Object)(unsafe.Pointer(fc.Call()))
+	return object(fc.Call())
 }

@@ -5,15 +5,15 @@ import (
 )
 
 type NSImageView struct {
-	*objc.Object
+	objc.Object
 }
 
 func NewNSImageView() NSImageView {
 	return NSImageView{objc.GetClass("NSImageView").Alloc().Init()}
 }
 
-func (imgView NSImageView) SetImage(img NSImage) {
-	imgView.SendMsg("setImage:", img.Object)
+func (imgView NSImageView) SetImage(img objc.Object) {
+	imgView.SendMsg("setImage:", img)
 }
 
 func (imgView NSImageView) Image() NSImage {

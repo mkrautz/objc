@@ -3,7 +3,7 @@ package foundation
 import "github.com/mkrautz/objc"
 
 type NSAutoreleasePool struct {
-	*objc.Object
+	objc.Object
 }
 
 func NewNSAutoreleasePool() NSAutoreleasePool {

@@ -6,9 +6,9 @@ import (
 )
 
 type NSImage struct {
-	*objc.Object
+	objc.Object
 }
 
-func NSImageNamed(name string) NSImage {
-	return NSImage{objc.GetClass("NSImage").SendMsg("imageNamed:", NSStringFromString(name).Object)}
+func NSImageNamed(name string) objc.Object {
+	return NSImage{objc.GetClass("NSImage").SendMsg("imageNamed:", NSStringFromString(name))}
 }

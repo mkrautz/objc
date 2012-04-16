@@ -3,7 +3,7 @@ package foundation
 import "github.com/mkrautz/objc"
 
 type NSThread struct {
-	*objc.Object
+	objc.Object
 }
 
 func NSThreadIsMainThread() bool {
