@@ -5,6 +5,8 @@ package objc
 #cgo LDFLAGS: -lobjc -framework Foundation
 #include <objc/runtime.h>
 #include <objc/message.h>
+#include <stdio.h>
+#include <math.h>
 
 void *GoObjc_GetClass(char *name) {
 	return (void *) objc_getClass(name);
@@ -15,12 +17,27 @@ void *GoObjc_RegisterSelector(char *name) {
 }
 
 void *GoObjc_AllocateClassPair(void *superCls, char *name) {
-	return (void *) objc_allocateClassPair(superCls, name, 0);
+	void *cls = objc_allocateClassPair(superCls, name, 0);
+	if (class_addIvar(cls, "__go_internal", sizeof(void *), log2(sizeof(void *)), "^") == YES)
+		return cls;
+	return NULL;
 }
 
 void GoObjc_ClassAddMethod(void *subCls, void *sel, void *imp, char *typ) {
 	class_addMethod(subCls, sel, imp, typ);
 }
+
+void GoObjc_SetInternal(void *obj, void *cls, void *ptr) {
+	Ivar iv = class_getInstanceVariable(cls, "__go_internal");
+	unsigned long *v = obj + ivar_getOffset(iv);
+	*v = (unsigned long) ptr;
+}
+
+ void *GoObjc_GetInternal(void *obj, void *cls) {
+	Ivar iv = class_getInstanceVariable(cls, "__go_internal");
+	unsigned long *v = obj + ivar_getOffset(iv);
+	return (void *) *v;
+ }
 
 void GoObjc_RegisterClass(void *cls) {
 	objc_registerClassPair(cls);
@@ -51,7 +68,11 @@ type Class struct {
 // NewClass returns a new class that is a sublcass of
 // the specified super class.
 func NewClass(superClass *Object, name string) *Object {
-	return (*Object)(C.GoObjc_AllocateClassPair(unsafe.Pointer(superClass), C.CString(name)))
+	obj := (*Object)(C.GoObjc_AllocateClassPair(unsafe.Pointer(superClass), C.CString(name)))
+	if obj == nil {
+		panic("unable to AllocateClassPair")
+	}
+	return obj
 }
 
 // RegisterClass registers an object representing a class
@@ -63,6 +84,22 @@ func RegisterClass(class *Object) {
 // AddMethod adds a new method to a class.
 func (cls *Object) AddMethod(s Selector, typeInfo string) {
 	C.GoObjc_ClassAddMethod(unsafe.Pointer(cls), unsafe.Pointer(uintptr(s)), methodCallTarget(), C.CString(typeInfo))
+}
+
+// setInternalPointer sets an internal pointer on the object.
+// This is used to implement correct method dispatch for
+// Objective-C classes created from within Go.
+func (obj *Object) setInternalPointer(value unsafe.Pointer) {
+	cls := obj.SendMsg("class")
+	C.GoObjc_SetInternal(unsafe.Pointer(obj), unsafe.Pointer(cls), unsafe.Pointer(value))
+}
+
+// internalPointer returns the object's internal pointer.
+// Must only be called on objects that are known to have
+// an internal pointer set.
+func (obj *Object) internalPointer() unsafe.Pointer {
+	cls := obj.SendMsg("class")
+	return C.GoObjc_GetInternal(unsafe.Pointer(obj), unsafe.Pointer(cls))
 }
 
 // An Object represents an Objective-C object, but it also implements convenience
