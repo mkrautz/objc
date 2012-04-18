@@ -46,7 +46,32 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	methodVal := reflect.ValueOf(method)
 
 	args := []reflect.Value{selfVal, reflect.ValueOf(obj)}
-	methodVal.Call(args)
+	retVals := methodVal.Call(args)
+
+	if len(retVals) > 0 {
+		val := retVals[0]
+		switch val.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return uintptr(val.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return uintptr(val.Uint())
+		case reflect.Bool:
+			if val.Bool() {
+				return 1
+			} else {
+				return 0
+			}
+		case reflect.Float32, reflect.Float64:
+			panic("objc: float return values not yet supported")
+		case reflect.Interface:
+			if obj, ok := val.Interface().(Object); ok {
+				return obj.Pointer()
+			}
+			panic("objc: bad interface return value")
+		default:
+			panic("objc: unknown return value")
+		}
+	}
 
 	return 0
 }

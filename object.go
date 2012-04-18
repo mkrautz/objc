@@ -37,6 +37,18 @@ type Object interface {
 	// message to the object, except that this method
 	// returns a Go string.
 	String() string
+
+	// Uint returns the value of the object as an uint64.
+	Uint() uint64
+
+	// Int returns the value of the object as an int64.
+	Int() int64
+
+	// Float returns the value of the object as a float64.
+	Float() float64
+
+	// Bool returns the value of the object as a bool.
+	Bool() bool
 }
 
 // Type object is the package's internal representation of an Object.
@@ -89,4 +101,20 @@ func (obj object) String() string {
 	}
 
 	return "(nil)"
+}
+
+func (obj object) Uint() uint64 {
+	return uint64(obj.ptr)
+}
+
+func (obj object) Int() int64 {
+	return int64(obj.ptr)
+}
+
+func (obj object) Float() float64 {
+	return float64(obj.ptr)
+}
+
+func (obj object) Bool() bool {
+	return obj.ptr == 1
 }
