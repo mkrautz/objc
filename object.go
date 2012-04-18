@@ -1,7 +1,10 @@
 // Package objc implements access to the Objective-C runtime from Go
 package objc
 
-import "C"
+import (
+	"C"
+	"math"
+)
 import "unsafe"
 
 // An Object represents an Objective-C object, along with
@@ -112,7 +115,12 @@ func (obj object) Int() int64 {
 }
 
 func (obj object) Float() float64 {
-	return float64(obj.ptr)
+	// fixme(mkrautz): 64-bit only only; also not sure if
+	// this check is even valid for IEEE floats.
+	if obj.ptr&0xffffffff00000000 == 0 {
+		return float64(math.Float32frombits(uint32(obj.ptr)))
+	}
+	return math.Float64frombits(uint64(obj.ptr))
 }
 
 func (obj object) Bool() bool {

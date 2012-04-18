@@ -45,7 +45,7 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	floatArgs := []uintptr{}
 	memArgs := []uintptr{}
 
-	var typeInfo string
+	typeInfo := simpleTypeInfoForMethod(obj, selector)
 
 	for i, arg := range args {
 		switch t := arg.(type) {
@@ -89,10 +89,6 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 		// To remedy this, we query the selector's type encoding, and check
 		// whether it expects a 32-bit or 64-bit float.	
 		case float64:
-			// Request typeInfo if we don't have it already.
-			if typeInfo == "" {
-				typeInfo = simpleTypeInfoForMethod(obj, selector)
-			}
 			typeEnc := string(typeInfo[i+3])
 			switch typeEnc {
 			case encFloat:
@@ -141,6 +137,15 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	fc.NumFloat = int64(len(floatArgs))
 	for i, v := range floatArgs {
 		fc.Words[6+i] = v
+	}
+
+	if len(typeInfo) > 0 {
+		retEnc := string(typeInfo[0])
+		if retEnc == encFloat {
+			return object{ptr: uintptr(math.Float32bits(fc.CallFloat32()))}
+		} else if retEnc == encDouble {
+			return object{ptr: uintptr(math.Float64bits(fc.CallFloat64()))}
+		}
 	}
 
 	return object{ptr: fc.Call()}
