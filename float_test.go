@@ -53,3 +53,37 @@ func TestFloatReturnValue(t *testing.T) {
 		t.Errorf("expected %v, got %v", in, out.Float())
 	}
 }
+
+type FloatTester struct {
+	Object
+}
+
+func (ft *FloatTester) Float64Returner(tmp Object) float64 {
+	return 42.0
+}
+
+func (ft *FloatTester) Float32Returner(tmp Object) float32 {
+	return 42.0
+}
+
+func TestFloat64RetGoObject(t *testing.T) {
+	c := NewClass(GetClass("NSObject"), "FloatTester", FloatTester{})
+	c.AddMethod("float64Returner:", (*FloatTester).Float64Returner)
+	c.AddMethod("float32Returner:", (*FloatTester).Float32Returner)
+	RegisterClass(c)
+
+	ft := new(FloatTester)
+	NewGoInstance("FloatTester", ft)
+
+	goAnswer64 := ft.Float64Returner(ft)
+	objcAnswer64 := ft.SendMsg("float64Returner:", ft).Float()
+	if goAnswer64 != objcAnswer64 {
+		t.Errorf("float64: expected %v, got %v", goAnswer64, objcAnswer64)
+	}
+
+	goAnswer32 := ft.Float32Returner(ft)
+	objcAnswer32 := float32(ft.SendMsg("float32Returner:", ft).Float())
+	if goAnswer32 != objcAnswer32 {
+		t.Errorf("float32: expected %v, got %v", goAnswer32, objcAnswer32)
+	}
+}

@@ -7,6 +7,7 @@ import "C"
 import (
 	"reflect"
 	"unsafe"
+	"math"
 )
 
 type amd64frame struct {
@@ -16,14 +17,14 @@ type amd64frame struct {
 	rcx  uintptr
 	r8   uintptr
 	r9   uintptr
-	xmm0 float64
-	xmm1 float64
-	xmm2 float64
-	xmm3 float64
-	xmm4 float64
-	xmm5 float64
-	xmm6 float64
-	xmm7 float64
+	xmm0 uintptr
+	xmm1 uintptr
+	xmm2 uintptr
+	xmm3 uintptr
+	xmm4 uintptr
+	xmm5 uintptr
+	xmm6 uintptr
+	xmm7 uintptr
 }
 
 func methodCallTarget() unsafe.Pointer {
@@ -61,8 +62,12 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 			} else {
 				return 0
 			}
-		case reflect.Float32, reflect.Float64:
-			panic("objc: float return values not yet supported")
+		case reflect.Float32:
+			frame.xmm0 = uintptr(math.Float32bits(float32(val.Float())))
+			return 1
+		case reflect.Float64:
+			frame.xmm0 = uintptr(math.Float64bits(val.Float()))
+			return 1
 		case reflect.Interface:
 			if obj, ok := val.Interface().(Object); ok {
 				return obj.Pointer()

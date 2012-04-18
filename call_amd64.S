@@ -32,6 +32,8 @@ _GoObjc_CallTargetFrameSetup:
 
 	callq _goMethodCallEntryPoint
 
+	movsd 48(%rsp), %xmm0
+
 	movq  %rbp, %rsp
 	popq  %rbp
 	retq
