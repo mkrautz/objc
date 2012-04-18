@@ -55,7 +55,7 @@ type Object interface {
 // Besides implementing the Objct interface, object also implements
 // the Class interface.
 type object struct {
-	ptr     uintptr
+	ptr uintptr
 }
 
 // Return the Object as a uintptr.

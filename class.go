@@ -44,6 +44,9 @@ char *GoObjc_SelectorToString(void *sel) {
 	return (char *) sel;
 }
 
+void *GoObjc_GetObjectClass(void *obj) {
+	return objc_msgSend(obj, sel_registerName("class"));
+}
 */
 import "C"
 import (
@@ -136,6 +139,12 @@ func NewGoInstance(className string, value interface{}) {
 // Lookup a Class by name
 func GetClass(name string) Class {
 	return object{ptr: uintptr(C.GoObjc_GetClass(C.CString(name)))}
+}
+
+// Get object class
+func GetObjectClass(obj Object) Class {
+	classPtr := C.GoObjc_GetObjectClass(unsafe.Pointer(obj.Pointer()))
+	return object{ptr: uintptr(classPtr)}
 }
 
 // RegisterClass registers a Class with the Objective-C runtime.
