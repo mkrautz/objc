@@ -5,7 +5,6 @@ package objc
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <stdio.h>
-#include <math.h>
 
 static unsigned long key = 0xbadc0c0a;
 
@@ -14,10 +13,7 @@ void *GoObjc_GetClass(char *name) {
 }
 
 void *GoObjc_AllocateClassPair(void *superCls, char *name) {
-	void *cls = objc_allocateClassPair(superCls, name, 0);
-	if (class_addIvar(cls, "__go_internal", sizeof(void *), log2(sizeof(void *)), "^") == YES)
-		return cls;
-	return NULL;
+	return (void *) objc_allocateClassPair(superCls, name, 0);
 }
 
 void GoObjc_ClassAddMethod(void *subCls, void *sel, void *imp, char *typ) {
