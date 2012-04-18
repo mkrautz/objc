@@ -32,7 +32,7 @@ func unpackStruct(val reflect.Value) []uintptr {
 func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	// Keep ObjC semantics: messages can be sent to nil objects,
 	// but the response is nil.
-	if uintptr(obj) == 0 {
+	if obj.ptr == 0 {
 		return nil
 	}
 
@@ -121,5 +121,5 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 		fc.Words[6+i] = v
 	}
 
-	return object(fc.Call())
+	return object{ptr: fc.Call()}
 }

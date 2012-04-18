@@ -5,8 +5,8 @@ extern unsigned long GoObjc_CallTargetFrameSetup;
 */
 import "C"
 import (
+	"reflect"
 	"unsafe"
-	"log"
 )
 
 type amd64frame struct {
@@ -33,8 +33,20 @@ func methodCallTarget() unsafe.Pointer {
 //export goMethodCallEntryPoint
 func goMethodCallEntryPoint(p uintptr) uintptr {
 	frame := (*amd64frame)(unsafe.Pointer(p))
-	log.Printf("obj = 0x%x", frame.rdi)
-	log.Printf("sel = 0x%x", frame.rsi)
+
+	obj := object{ptr: frame.rdi}
+	sel := selectorToString(frame.rsi)
+	clsName := object{ptr: obj.SendMsg("class").Pointer()}.className()
+
+	clsInfo := classMap[clsName]
+	method := clsInfo.MethodForSelector(sel)
+
+	ptr := obj.internalPointer()
+	selfVal := reflect.NewAt(clsInfo.typ, ptr)
+	methodVal := reflect.ValueOf(method)
+
+	args := []reflect.Value{selfVal, reflect.ValueOf(obj)}
+	methodVal.Call(args)
+
 	return 0
 }
-

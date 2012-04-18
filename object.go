@@ -42,14 +42,16 @@ type Object interface {
 // Type object is the package's internal representation of an Object.
 // Besides implementing the Objct interface, object also implements
 // the Class interface.
-type object uintptr
+type object struct {
+	ptr     uintptr
+}
 
 // Return the Object as a uintptr.
 //
 // Using package unsafe, this uintptr can further
 // be converted to an unsafe.Pointer.
 func (obj object) Pointer() uintptr {
-	return uintptr(unsafe.Pointer(obj))
+	return obj.ptr
 }
 
 func (obj object) Alloc() Object {

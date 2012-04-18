@@ -4,6 +4,7 @@ import (
 	"github.com/mkrautz/objc"
 	. "github.com/mkrautz/objc/AppKit"
 	. "github.com/mkrautz/objc/Foundation"
+	"log"
 	"runtime"
 )
 
@@ -11,21 +12,32 @@ func init() {
 	defer runtime.LockOSThread()
 }
 
+type AppDelegate struct {
+	objc.Object
+}
+
+func init() {
+	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate", AppDelegate{})
+	c.AddMethod("applicationDidFinishLaunching:", (*AppDelegate).ApplicationDidFinishLaunching)
+	objc.RegisterClass(c)
+}
+
+func NewAppDelegate() *AppDelegate {
+	appDelegate := new(AppDelegate)
+	objc.NewGoInstance("GOAppDelegate", appDelegate)
+	return appDelegate
+}
+
+func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Object) {
+	log.Printf("applicationDidFinishLaunching! %v", notification)
+}
+
 func main() {
 	pool := NewNSAutoreleasePool()
 	defer pool.Release()
 
-	// Create a new ObjectiveC class, GOAppDelegate
-	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate")
-	// Add a method to it; sayHello
-	c.AddMethod("sayHello", objc.EncVoid+objc.EncId+objc.EncSelector)
-	// Register the class
-	objc.RegisterClass(c)
-
-	// Instantiate the class, and call our new method.
-	// For now, this will call an internal method in the objc package.
-	o := objc.GetClass("GOAppDelegate").SendMsg("alloc").SendMsg("init")
-	o.SendMsg("sayHello")
+	appDelegate := NewAppDelegate()
+	appDelegate.SendMsg("applicationDidFinishLaunching:", appDelegate)
 
 	app := NSSharedApplication()
 
