@@ -37,7 +37,7 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 
 	obj := object{ptr: frame.rdi}
 	sel := selectorToString(frame.rsi)
-	clsName := object{ptr: obj.SendMsg("class").Pointer()}.className()
+	clsName := object{ptr: getObjectClass(obj).Pointer()}.className()
 
 	clsInfo := classMap[clsName]
 	method := clsInfo.MethodForSelector(sel)

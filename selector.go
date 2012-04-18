@@ -25,7 +25,7 @@ func selectorWithName(name string) unsafe.Pointer {
 // selector on obj's Class.
 func typeInfoForMethod(obj Object, selector string) string {
 	sel := selectorWithName(selector)
-	cls := GetObjectClass(obj)
+	cls := getObjectClass(obj)
 	return C.GoString(C.GoObjc_TypeInfoForMethod(unsafe.Pointer(cls.Pointer()), sel))
 }
 

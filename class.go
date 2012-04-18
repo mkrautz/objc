@@ -137,8 +137,12 @@ func GetClass(name string) Class {
 	return object{ptr: uintptr(C.GoObjc_GetClass(C.CString(name)))}
 }
 
-// Get object class
-func GetObjectClass(obj Object) Class {
+// Get the Class of an object. This equivalent to sending the
+// class message to the object, but this is not always possible.
+// (The SendMsg method, for example, needs to get the class of the
+// object it is sending a message to. This would end in an infinite
+// loop.)
+func getObjectClass(obj Object) Class {
 	classPtr := C.GoObjc_GetObjectClass(unsafe.Pointer(obj.Pointer()))
 	return object{ptr: uintptr(classPtr)}
 }
