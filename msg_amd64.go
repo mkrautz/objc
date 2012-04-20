@@ -33,7 +33,7 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	// Keep ObjC semantics: messages can be sent to nil objects,
 	// but the response is nil.
 	if obj.ptr == 0 {
-		return nil
+		return obj
 	}
 
 	sel := selectorWithName(selector)
