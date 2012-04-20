@@ -19,7 +19,6 @@ type AppDelegate struct {
 func init() {
 	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate", AppDelegate{})
 	c.AddMethod("applicationDidFinishLaunching:", (*AppDelegate).ApplicationDidFinishLaunching)
-	c.AddMethod("boolReturner:", (*AppDelegate).BoolReturner)
 	objc.RegisterClass(c)
 }
 
@@ -33,20 +32,14 @@ func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Obj
 	log.Printf("applicationDidFinishLaunching! %v", notification)
 }
 
-func (delegate *AppDelegate) BoolReturner(anObj objc.Object) bool {
-	return false
-}
-
 func main() {
 	pool := NewNSAutoreleasePool()
 	defer pool.Release()
 
 	appDelegate := NewAppDelegate()
-	appDelegate.SendMsg("applicationDidFinishLaunching:", appDelegate)
-	b := appDelegate.SendMsg("boolReturner:", appDelegate).Bool()
-	log.Printf("%v", b)
 
 	app := NSSharedApplication()
+	app.SetDelegate(appDelegate)
 
 	mask := NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
 	window := NewNSWindow(NSRectMake(0, 0, 500, 500), mask, NSBackingStoreBuffered, false)
