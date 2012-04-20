@@ -74,8 +74,8 @@ type Class interface {
 	AddMethod(selector string, fn interface{})
 }
 
-// NewClass returns a new class, named by the name parameter,
-// that is a subclass of the specified superclass.
+// NewClass returns a new class, named by the name parameter.
+// The class is subclass of the specified superclass.
 //
 // The value parameter must point to a value of the struct that
 // is used to represent instances of the class in Go.
