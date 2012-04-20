@@ -71,6 +71,15 @@ func init() {
 // class Object.
 type Class interface {
 	Object
+
+	// AddMethod registers a Go function to be called whenever
+	// an instance of the class receives a message for the given
+	// selector.
+	//
+	// The AddMethod call only works for classes created with
+	// objc.NewClass. Method calls will only be received by the
+	// Go function if instances of the class are instanciated
+	// by calling objc.NewGoInstance.
 	AddMethod(selector string, fn interface{})
 }
 
