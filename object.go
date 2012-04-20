@@ -99,7 +99,7 @@ func (obj object) String() string {
 
 	descString := obj.SendMsg("description")
 	utf8Bytes := descString.SendMsg("UTF8String")
-	if utf8Bytes != nil {
+	if utf8Bytes.Pointer() != 0 {
 		return C.GoString((*C.char)(unsafe.Pointer(utf8Bytes.Pointer())))
 	}
 
