@@ -156,6 +156,10 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 		case reflect.Float64:
 			args = append(args, reflect.ValueOf(math.Float64frombits(uint64(fetcher.Float()))))
 
+		case reflect.Bool:
+			val := fetcher.Int() != 0
+			args = append(args, reflect.ValueOf(val))
+
 		default:
 			panic("call: unhandled arg")
 		}

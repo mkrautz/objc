@@ -62,7 +62,14 @@ func funcTypeInfo(fn interface{}) string {
 		panic("too many output parameters")
 	}
 
-	for i := 0; i < typ.NumIn(); i++ {
+	if typ.NumIn() == 0 {
+		panic("funcTypeInfo: bad func")
+	}
+
+	typeInfo += typeInfoForType(typ.In(0))
+	typeInfo += encSelector
+
+	for i := 1; i < typ.NumIn(); i++ {
 		typeInfo += typeInfoForType(typ.In(i))
 	}
 	return typeInfo
