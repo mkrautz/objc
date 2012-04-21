@@ -37,6 +37,12 @@ const (
 	encConst       = "r"
 )
 
+var (
+	objectInterfaceType   = reflect.TypeOf((*Object)(nil)).Elem()
+	classInterfaceType    = reflect.TypeOf((*Class)(nil)).Elem()
+	selectorInterfaceType = reflect.TypeOf((*Selector)(nil)).Elem()
+)
+
 // Returns the function's typeInfo
 func funcTypeInfo(fn interface{}) string {
 	typ := reflect.TypeOf(fn)

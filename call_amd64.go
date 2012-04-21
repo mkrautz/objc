@@ -102,12 +102,11 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	fetcher := frameFetcher(frame)
 
 	obj := object{ptr: fetcher.Int()}
-	sel := selectorToString(fetcher.Int())
+	sel := stringFromSelector(unsafe.Pointer(fetcher.Int()))
 
 	clsName := object{ptr: getObjectClass(obj).Pointer()}.className()
 	clsInfo := classMap[clsName]
 	method := clsInfo.MethodForSelector(sel)
-	typeInfo := funcTypeInfo(method)
 
 	methodVal := reflect.ValueOf(method)
 
@@ -119,6 +118,16 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	mt := reflect.TypeOf(method)
 	for i := 1; i < mt.NumIn(); i++ {
 		typ := mt.In(i)
+
+		if typ.Implements(objectInterfaceType) {
+			args = append(args, reflect.ValueOf(object{ptr: fetcher.Int()}))
+			continue
+		} else if typ.Implements(selectorInterfaceType) {
+			sel := selector(stringFromSelector(unsafe.Pointer(fetcher.Int())))
+			args = append(args, reflect.ValueOf(sel))
+			continue
+		}
+
 		switch typ.Kind() {
 		case reflect.Int:
 			args = append(args, reflect.ValueOf(int(fetcher.Int())))
@@ -146,14 +155,6 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 			args = append(args, reflect.ValueOf(math.Float32frombits(uint32(fetcher.Float()))))
 		case reflect.Float64:
 			args = append(args, reflect.ValueOf(math.Float64frombits(uint64(fetcher.Float()))))
-
-		case reflect.Interface:
-			if string(typeInfo[1+i]) == encId {
-				o := object{ptr: fetcher.Int()}
-				args = append(args, reflect.ValueOf(o))
-			} else {
-				panic("call: bad interface type in call to Go method")
-			}
 
 		default:
 			panic("call: unhandled arg")

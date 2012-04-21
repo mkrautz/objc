@@ -5,7 +5,6 @@ import (
 	"unsafe"
 )
 
-
 // todo(mkrautz): move to call_amd64.go?
 const (
 	nint     = 6

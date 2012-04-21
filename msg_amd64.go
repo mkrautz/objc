@@ -51,6 +51,8 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 		switch t := arg.(type) {
 		case Object:
 			intArgs = append(intArgs, t.Pointer())
+		case Selector:
+			intArgs = append(intArgs, uintptr(selectorWithName(t.Selector())))
 		case uintptr:
 			intArgs = append(intArgs, t)
 		case int:

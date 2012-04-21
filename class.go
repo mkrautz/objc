@@ -36,10 +36,6 @@ char *GoObjc_GetClassName(void *cls) {
 	return (char *) class_getName(cls);
 }
 
-char *GoObjc_SelectorToString(void *sel) {
-	return (char *) sel;
-}
-
 void *GoObjc_GetObjectClass(void *obj) {
 	return objc_msgSend(obj, sel_registerName("class"));
 }
@@ -190,10 +186,4 @@ func (obj object) setInternalPointer(value unsafe.Pointer) {
 // an internal pointer set.
 func (obj object) internalPointer() unsafe.Pointer {
 	return C.GoObjc_GetInternal(unsafe.Pointer(obj.Pointer()))
-}
-
-// selectorToString returns the string representation
-// of the selector sel.
-func selectorToString(sel uintptr) string {
-	return C.GoString(C.GoObjc_SelectorToString(unsafe.Pointer(sel)))
 }

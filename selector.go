@@ -12,6 +12,10 @@ char *GoObjc_TypeInfoForMethod(void *cls, void *sel) {
 	Method m = class_getInstanceMethod(cls, sel);
 	return (char *) method_getTypeEncoding(m);
 }
+
+char *GoObjc_SelectorToString(void *sel) {
+	return (char *) sel;
+}
 */
 import "C"
 import "unsafe"
@@ -53,6 +57,11 @@ func GetSelector(name string) Selector {
 // selectorWithName looks up a selector by name.
 func selectorWithName(name string) unsafe.Pointer {
 	return C.GoObjc_RegisterSelector(C.CString(name))
+}
+
+// stringFromSelector converts a selector to a Go string
+func stringFromSelector(sel unsafe.Pointer) string {
+	return C.GoString(C.GoObjc_SelectorToString(sel))
 }
 
 // typeInfoForMethod returns the type encoding string for

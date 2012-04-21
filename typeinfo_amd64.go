@@ -1,8 +1,19 @@
 package objc
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func typeInfoForType(typ reflect.Type) string {
+	if typ.Implements(classInterfaceType) {
+		return encClass
+	} else if typ.Implements(objectInterfaceType) {
+		return encId
+	} else if typ.Implements(selectorInterfaceType) {
+		return encSelector
+	}
+
 	kind := typ.Kind()
 	switch kind {
 	case reflect.Bool:
@@ -33,28 +44,7 @@ func typeInfoForType(typ reflect.Type) string {
 		return encFloat
 	case reflect.Float64:
 		return encDouble
-	case reflect.Complex64, reflect.Complex128:
-		// skip
-	case reflect.Array:
-		//skip
-	case reflect.Chan:
-		// skip
-	case reflect.Func:
-		// skip
-	case reflect.Interface:
-		return encId
-	case reflect.Map:
-		// skip
-	case reflect.Ptr:
-		// skip
-	case reflect.Slice:
-		// skip
-	case reflect.String:
-		// skip
-	case reflect.Struct:
-		// skip
-	case reflect.UnsafePointer:
-		// skip
 	}
-	return encPtr
+
+	panic("typeinfo: unhandled/invalid kind " + fmt.Sprintf("%v", kind) + " " + fmt.Sprintf("%v", typ))
 }
