@@ -4,15 +4,12 @@ package objc
 import (
 	"C"
 	"math"
+	"unsafe"
 )
-import "unsafe"
 
 // An Object represents an Objective-C object, along with
 // some convenience methods only found on NSObjects.
 type Object interface {
-	// Pointer returns the in-memory address of the object.
-	Pointer() uintptr
-
 	// SendMsg sends an arbitrary message to the method on the
 	// object that is idenfieid by selectorName.
 	SendMsg(selectorName string, args ...interface{}) Object
@@ -40,6 +37,9 @@ type Object interface {
 	// message to the object, except that this method
 	// returns a Go string.
 	String() string
+
+	// Pointer returns the in-memory address of the object.
+	Pointer() uintptr
 
 	// Uint returns the value of the object as an uint64.
 	Uint() uint64
