@@ -16,6 +16,40 @@ char *GoObjc_TypeInfoForMethod(void *cls, void *sel) {
 import "C"
 import "unsafe"
 
+// A Selector represents an Objective-C method selector.
+type Selector interface {
+	// Selector returns a string representation of
+	// a selector.
+	Selector() string
+
+	// String returns the same string as Selector does.
+	// It is only implemented to implement the Stringer
+	// interface.
+	String() string
+}
+
+// Type selector is the underlying implementation
+// of the Selector interface. It is represented as
+// a Go string.
+type selector string
+
+// Selector implements the Selector method of the
+// Selector interface.
+func (sel selector) Selector() string {
+	return string(sel)
+}
+
+// String implements the String method of the
+// Selector interface.
+func (sel selector) String() string {
+	return sel.Selector()
+}
+
+// GetSelector looks up a Selector by name.
+func GetSelector(name string) Selector {
+	return selector(name)
+}
+
 // selectorWithName looks up a selector by name.
 func selectorWithName(name string) unsafe.Pointer {
 	return C.GoObjc_RegisterSelector(C.CString(name))
