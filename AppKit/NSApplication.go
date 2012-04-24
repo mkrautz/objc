@@ -1,5 +1,13 @@
 package appkit
 
+/*
+extern int NSApplicationMain(int argc, const char *argv[]);
+void GoAppKit_NSApplicationMain() {
+	NSApplicationMain(0, (void *)0);
+}
+*/
+import "C"
+
 import "github.com/mkrautz/objc"
 
 type NSApplication struct {
@@ -20,4 +28,16 @@ func (app NSApplication) SetDelegate(delegate objc.Object) {
 
 func (app NSApplication) Delegate() objc.Object {
 	return app.SendMsg("delegate")
+}
+
+func (app NSApplication) SetMainMenu(menu NSMenu) {
+	app.SendMsg("setMainMenu:", menu)
+}
+
+func (app NSApplication) MainMenu() NSMenu {
+	return NSMenu{app.SendMsg("mainMenu")}
+}
+
+func NSApplicationMain() {
+	C.GoAppKit_NSApplicationMain()
 }
