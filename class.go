@@ -90,6 +90,29 @@ func NewClass(superClass Class, name string, value interface{}) Class {
 		panic("unable to AllocateClassPair")
 	}
 
+	// Check whether the class has any IBOutlets
+	hasIBOutlets := false
+	typ := reflect.ValueOf(value).Type()
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if field.Tag.Get("objc") == "IBOutlet" {
+			if field.Type.Implements(objectInterfaceType) {
+				hasIBOutlets = true
+				break
+			} else {
+				panic("IBOutlets must implement objc.Object")
+			}
+		}
+	}
+
+	// Register the setVaue:forKey: method for our custom IBOutlet handling
+	// if the class has any IBOutlets.
+	if hasIBOutlets {
+		sel := selectorWithName("setValue:forKey:")
+		typeInfo := encVoid + encId + encSelector + encId + encId
+		C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
+	}
+
 	classMap[name] = classInfo{
 		typ:       reflect.TypeOf(value),
 		methodMap: make(map[string]interface{}),

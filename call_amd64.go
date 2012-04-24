@@ -96,6 +96,46 @@ func methodCallTarget() unsafe.Pointer {
 	return unsafe.Pointer(&C.GoObjc_CallTargetFrameSetup)
 }
 
+// setValueForKey implements the logic for the setValue:forKey:
+// method of Go structs exported as Objective-C classes.
+//
+// This function is only used if the exported struct has any
+// fields tagged with `objc:"IBOutlet"`.  If no fields are
+// tagged as such, the regular NSObject implementatin of the
+// setValue:forKey: method is used.
+func setValueForKey(obj reflect.Value, fetcher *amd64frameFetcher) {
+	// We only support Object values, so fetching
+	// Ints here is OK.
+	valuePtr := fetcher.Int()
+	keyPtr := fetcher.Int()
+
+	// We don't export any NSString-based functionality
+	// in package objc, except for the String() method
+	// on object.  It calls the object's decription method,
+	// which for NSStrings returns the string itself (or at
+	// least something that has been good enough for now!).
+	keyName := object{ptr: keyPtr}.String()
+
+	// Find an IBOutlet with the name keyName
+	val := obj.Elem()
+	typ := val.Type()
+	fieldIdx := -1
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if field.Tag.Get("objc") == "IBOutlet" && field.Type.Implements(objectInterfaceType) {
+			if field.Name == keyName {
+				fieldIdx = i
+				break
+			}
+		}
+	}
+	if fieldIdx != -1 {
+		fieldVal := val.Field(fieldIdx)
+		id := object{ptr: valuePtr}
+		fieldVal.Set(reflect.ValueOf(id))
+	}
+}
+
 //export goMethodCallEntryPoint
 func goMethodCallEntryPoint(p uintptr) uintptr {
 	frame := (*amd64frame)(unsafe.Pointer(p))
@@ -108,11 +148,20 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	clsInfo := classMap[clsName]
 	method := clsInfo.MethodForSelector(sel)
 
+	objVal := reflect.NewAt(clsInfo.typ, obj.internalPointer())
+
+	// Our own internal override for setValue:forKey: in order
+	// to support key-value coding.
+	if sel == "setValue:forKey:" && method == nil {
+		setValueForKey(objVal, &fetcher)
+		return 0
+	}
+
 	methodVal := reflect.ValueOf(method)
 
 	// First argument should point to the Go method's proper receiver.
 	// That's stored in the internalPointer, so fetch that.
-	args := []reflect.Value{reflect.NewAt(clsInfo.typ, obj.internalPointer())}
+	args := []reflect.Value{objVal}
 
 	// Take care of the rest of the arguments
 	mt := reflect.TypeOf(method)
