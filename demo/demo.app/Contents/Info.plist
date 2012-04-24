@@ -18,6 +18,10 @@
 	<string>1.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.6.0</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2012 Mikkel Krautz &lt;mikkel@krautz.dk&gt;</string>
 </dict>

@@ -3,23 +3,20 @@ package main
 import (
 	"github.com/mkrautz/objc"
 	. "github.com/mkrautz/objc/AppKit"
-	. "github.com/mkrautz/objc/Foundation"
 	"log"
 	"runtime"
 )
 
 func init() {
 	defer runtime.LockOSThread()
+
+	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate", AppDelegate{})
+	c.AddMethod("applicationDidFinishLaunching:", (*AppDelegate).ApplicationDidFinishLaunching)
+	objc.RegisterClass(c)
 }
 
 type AppDelegate struct {
 	objc.Object
-}
-
-func init() {
-	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate", AppDelegate{})
-	c.AddMethod("applicationDidFinishLaunching:", (*AppDelegate).ApplicationDidFinishLaunching)
-	objc.RegisterClass(c)
 }
 
 func NewAppDelegate() *AppDelegate {
@@ -30,10 +27,14 @@ func NewAppDelegate() *AppDelegate {
 
 func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Object) {
 	log.Printf("applicationDidFinishLaunching! %v", notification)
+
+	mainMenu := NSSharedApplication().MainMenu()
+	log.Printf("%v", mainMenu)
 }
 
 func main() {
-	pool := NewNSAutoreleasePool()
+	NSApplicationMain()
+	/*pool := NewNSAutoreleasePool()
 	defer pool.Release()
 
 	appDelegate := NewAppDelegate()
@@ -54,5 +55,5 @@ func main() {
 	imgView.SetImage(gopherImg)
 	window.SetContentView(imgView)
 
-	app.Run()
+	app.Run()*/
 }
