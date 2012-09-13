@@ -38,26 +38,4 @@ func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Obj
 
 func main() {
 	NSApplicationMain()
-	/*pool := NewNSAutoreleasePool()
-	defer pool.Release()
-
-	appDelegate := NewAppDelegate()
-
-	app := NSSharedApplication()
-	app.SetDelegate(appDelegate)
-
-	mask := NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask
-	window := NewNSWindow(NSRectMake(0, 0, 500, 500), mask, NSBackingStoreBuffered, false)
-	window.AutoRelease()
-	window.Display()
-	window.MakeKeyAndOrderFront(window)
-	window.SetTitle("Go Demo")
-
-	// Add a gopher!
-	gopherImg := NSImageNamed("gopher")
-	imgView := NewNSImageView()
-	imgView.SetImage(gopherImg)
-	window.SetContentView(imgView)
-
-	app.Run()*/
 }
