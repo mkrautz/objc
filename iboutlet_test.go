@@ -11,7 +11,7 @@ import (
 )
 
 type IBOutletTester struct {
-	Object
+	Object `objc:"IBOutletTester : NSObject"`
 
 	Myself Object `objc:"IBOutlet"`
 }
@@ -24,7 +24,7 @@ func NSStringFromString(str string) Object {
 }
 
 func TestKeyValueCodingImpl(t *testing.T) {
-	c := NewClass(GetClass("NSObject"), "IBOutletTester", IBOutletTester{})
+	c := NewClass(IBOutletTester{})
 	RegisterClass(c)
 
 	ibo := new(IBOutletTester)

@@ -59,7 +59,7 @@ func TestFloatReturnValue(t *testing.T) {
 }
 
 type FloatTester struct {
-	Object
+	Object `objc:"FloatTester : NSObject"`
 }
 
 func (ft *FloatTester) Float64Returner() float64 {
@@ -71,7 +71,7 @@ func (ft *FloatTester) Float32Returner() float32 {
 }
 
 func TestFloat64RetGoObject(t *testing.T) {
-	c := NewClass(GetClass("NSObject"), "FloatTester", FloatTester{})
+	c := NewClass(FloatTester{})
 	c.AddMethod("float64Returner", (*FloatTester).Float64Returner)
 	c.AddMethod("float32Returner", (*FloatTester).Float32Returner)
 	RegisterClass(c)

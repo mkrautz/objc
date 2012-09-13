@@ -10,7 +10,7 @@ import (
 )
 
 type SomeObject struct {
-	Object
+	Object `objc:"SomeObject : NSObject"`
 
 	t *testing.T
 }
@@ -33,7 +33,7 @@ var once sync.Once
 
 func registerTestClass() {
 	once.Do(func() {
-		c := NewClass(GetClass("NSObject"), "SomeObject", SomeObject{})
+		c := NewClass(SomeObject{})
 		c.AddMethod("callWithObject:selector:", (*SomeObject).CallWithObjectAndSelector)
 		c.AddMethod("callWithFloat64:", (*SomeObject).CallWithFloat64)
 		c.AddMethod("callWithFloat32:", (*SomeObject).CallWithFloat32)

@@ -47,6 +47,7 @@ void *GoObjc_GetObjectClass(void *obj) {
 import "C"
 import (
 	"reflect"
+	"strings"
 	"unsafe"
 )
 
@@ -83,20 +84,36 @@ type Class interface {
 	AddMethod(selector string, fn interface{})
 }
 
-// NewClass returns a new class, named by the name parameter.
-// The class is subclass of the specified superclass.
-//
-// The value parameter must point to a value of the struct that
-// is used to represent instances of the class in Go.
-func NewClass(superClass Class, name string, value interface{}) Class {
-	ptr := C.GoObjc_AllocateClassPair(unsafe.Pointer(superClass.Pointer()), C.CString(name))
+// NewClass returns a new class. The value parameter must
+// point to a value of the struct that is used to represent
+// instances of the class in Go.
+func NewClass(value interface{}) Class {
+	typ := reflect.ValueOf(value).Type()
+
+	// The tag of the first field contains a
+	// description of the class: its name in
+	// Objective-C and its super class.
+	//
+	// For example:
+	//   `objc:"GOAppDelegate : NSObject"`
+	field := typ.Field(0)
+	descrStr := field.Tag.Get("objc")
+	descr := strings.Split(descrStr, " : ")
+	if len(descr) != 2 {
+		panic("objc: bad description string for class " + typ.Name())
+	}
+
+	className := descr[0]
+	superClassName := descr[1]
+	superClass := GetClass(superClassName)
+
+	ptr := C.GoObjc_AllocateClassPair(unsafe.Pointer(superClass.Pointer()), C.CString(className))
 	if ptr == nil {
 		panic("unable to AllocateClassPair")
 	}
 
 	// Check whether the class has any IBOutlets
 	hasIBOutlets := false
-	typ := reflect.ValueOf(value).Type()
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		if field.Tag.Get("objc") == "IBOutlet" {
@@ -117,7 +134,7 @@ func NewClass(superClass Class, name string, value interface{}) Class {
 		C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
 	}
 
-	classMap[name] = classInfo{
+	classMap[className] = classInfo{
 		typ:       reflect.TypeOf(value),
 		methodMap: make(map[string]interface{}),
 	}

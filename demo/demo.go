@@ -14,19 +14,13 @@ import (
 func init() {
 	defer runtime.LockOSThread()
 
-	c := objc.NewClass(objc.GetClass("NSObject"), "GOAppDelegate", AppDelegate{})
+	c := objc.NewClass(AppDelegate{})
 	c.AddMethod("applicationDidFinishLaunching:", (*AppDelegate).ApplicationDidFinishLaunching)
 	objc.RegisterClass(c)
 }
 
 type AppDelegate struct {
-	objc.Object
-}
-
-func NewAppDelegate() *AppDelegate {
-	appDelegate := new(AppDelegate)
-	objc.NewGoInstance("GOAppDelegate", appDelegate)
-	return appDelegate
+	objc.Object `objc:"GOAppDelegate : NSObject"`
 }
 
 func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Object) {
