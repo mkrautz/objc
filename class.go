@@ -12,8 +12,12 @@ package objc
 
 static unsigned long key = 0xbadc0c0a;
 
-void *GoObjc_GetClass(char *name) {
+void *GoObjc_GetClassByName(char *name) {
 	return (void *) objc_getClass(name);
+}
+
+void *GoObjc_GetObjectClass(void *obj) {
+	return (void *) object_getClass(obj);
 }
 
 void *GoObjc_AllocateClassPair(void *superCls, char *name) {
@@ -38,10 +42,6 @@ void GoObjc_RegisterClass(void *cls) {
 
 char *GoObjc_GetClassName(void *cls) {
 	return (char *) class_getName(cls);
-}
-
-void *GoObjc_GetObjectClass(void *obj) {
-	return objc_msgSend(obj, sel_registerName("class"));
 }
 */
 import "C"
@@ -183,7 +183,7 @@ func NewGoInstance(className string, value interface{}) {
 
 // Lookup a Class by name
 func GetClass(name string) Class {
-	return object{ptr: uintptr(C.GoObjc_GetClass(C.CString(name)))}
+	return object{ptr: uintptr(C.GoObjc_GetClassByName(C.CString(name)))}
 }
 
 // Get the Class of an object. This equivalent to sending the
