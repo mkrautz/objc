@@ -6,9 +6,9 @@ package objc
 
 /*
 #cgo LDFLAGS: -lobjc -framework Foundation
+#define __OBJC2__ 1
 #include <objc/runtime.h>
 #include <objc/message.h>
-#include <stdio.h>
 
 static unsigned long key = 0xbadc0c0a;
 
@@ -54,10 +54,24 @@ import (
 type classInfo struct {
 	typ       reflect.Type
 	methodMap map[string]interface{}
+	refs      map[uintptr]unsafe.Pointer
 }
 
 func (ci classInfo) MethodForSelector(sel string) interface{} {
 	return ci.methodMap[sel]
+}
+
+func (ci *classInfo) AddRef(ptr unsafe.Pointer) {
+	if ci.refs == nil {
+		ci.refs = make(map[uintptr]unsafe.Pointer)
+	}
+	ci.refs[uintptr(ptr)] = ptr
+}
+
+func (ci *classInfo) RemoveRef(ptr unsafe.Pointer) {
+	if ci.refs != nil {
+		delete(ci.refs, uintptr(ptr))
+	}
 }
 
 var (
@@ -126,7 +140,7 @@ func NewClass(value interface{}) Class {
 		}
 	}
 
-	// Register the setVaue:forKey: method for our custom IBOutlet handling
+	// Register the setValue:forKey: method for our custom IBOutlet handling
 	// if the class has any IBOutlets.
 	if hasIBOutlets {
 		sel := selectorWithName("setValue:forKey:")
@@ -134,51 +148,18 @@ func NewClass(value interface{}) Class {
 		C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
 	}
 
+	// Register the dealloc method to be able to properly remove the classInfo
+	// reference to our internal pointer.
+	sel := selectorWithName("dealloc")
+	typeInfo := encVoid + encId + encSelector
+	C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
+
 	classMap[className] = classInfo{
 		typ:       reflect.TypeOf(value),
 		methodMap: make(map[string]interface{}),
 	}
 
 	return object{ptr: uintptr(ptr)}
-}
-
-// NewGoInstance registers a Go Obejctive-C class instance
-// as an instance with the objc package.
-//
-// The className parameter must be a valid Objective-C class,
-// typically one registered with the objc package by calling
-// objc.NewClass.
-//
-// The value parameter must be a pointer to a struct that embeds
-// the objc.Object interface.
-func NewGoInstance(className string, value interface{}) {
-	val := reflect.ValueOf(value)
-	if val.Kind() != reflect.Ptr {
-		panic("NewGoInstance: value must be a pointer")
-	}
-
-	// Extract the Object field of the embedded objc.Object,
-	// if there is one.
-	ptrval := reflect.ValueOf(value).Elem()
-	var objval reflect.Value
-	if ptrval.Kind() == reflect.Struct {
-		objval = ptrval.FieldByName("Object")
-		if !val.IsValid() {
-			return
-		}
-	}
-
-	// Set the Object field to a new instance of the class.
-	o := GetClass(className).SendMsg("alloc").SendMsg("init")
-	obj, ok := o.(Object)
-	if !ok {
-		panic("NewGoInstance: value does not implement Object")
-	}
-	objval.Set(reflect.ValueOf(obj))
-
-	// Point the instance's internal pointer to the struct
-	// that we're proxying our Objective-C object to.
-	object{ptr: obj.Pointer()}.setInternalPointer(unsafe.Pointer(val.Pointer()))
 }
 
 // Lookup a Class by name

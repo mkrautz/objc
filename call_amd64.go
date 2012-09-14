@@ -152,12 +152,46 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	clsInfo := classMap[clsName]
 	method := clsInfo.MethodForSelector(sel)
 
-	objVal := reflect.NewAt(clsInfo.typ, obj.internalPointer())
+	// Check if we have an internal pointer set for this object.
+	// If not, make it happen.
+	internalPtr := obj.internalPointer()
+	if internalPtr == nil {
+		// Allocate the Go struct.
+		val := reflect.New(clsInfo.typ)
+		ptr := unsafe.Pointer(val.Pointer())
+		// Add a reference in the classInfo. This ensures we have
+		// a reference to our Go struct somewhere in Go land, which
+		// makes the garbage collector not collect it under our feet.
+		clsInfo.AddRef(ptr)
+		// Set the internalPointer so we can easily access
+		// the instance's Go struct pointer.
+		obj.setInternalPointer(ptr)
+		internalPtr = ptr
+		// Finally, update the Go struct's embedded objc.Object to
+		// point to the actual Objective-C instance.
+		structVal := val.Elem()
+		if structVal.Kind() == reflect.Struct {
+			objectVal := structVal.FieldByName("Object")
+			if objectVal.IsValid() {
+				objectVal.Set(reflect.ValueOf(obj))
+			}
+		}
+	}
+	objVal := reflect.NewAt(clsInfo.typ, internalPtr)
 
 	// Our own internal override for setValue:forKey: in order
 	// to support key-value coding.
 	if sel == "setValue:forKey:" && method == nil {
 		setValueForKey(objVal, &fetcher)
+		return 0
+	}
+
+	// The default dealloc implementation. This is called
+	// if a class doesn't register its own custom dealloc
+	// method.
+	if sel  == "dealloc" && method == nil {
+		clsInfo.RemoveRef(internalPtr)
+		obj.SendSuperMsg("dealloc")
 		return 0
 	}
 
@@ -213,12 +247,23 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 			val := fetcher.Int() != 0
 			args = append(args, reflect.ValueOf(val))
 
+		case reflect.Ptr:
+			ptrAddr := unsafe.Pointer(uintptr(fetcher.Int()))
+			args = append(args, reflect.NewAt(typ.Elem(), ptrAddr))
+
 		default:
 			panic("call: unhandled arg")
 		}
 	}
 
 	retVals := methodVal.Call(args)
+
+	// If a custom dealloc method has been registered, we
+	// still need to remove the reference to our Go struct
+	// pointer in order for the GC to kick in. Do that now.
+	if sel == "dealloc" {
+		clsInfo.RemoveRef(internalPtr)
+	}
 
 	if len(retVals) > 0 {
 		val := retVals[0]

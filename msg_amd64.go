@@ -4,6 +4,21 @@
 
 package objc
 
+/*
+#cgo LDFLAGS: -lobjc -framework Foundation
+#define __OBJC2__ 1
+#include <objc/runtime.h>
+#include <objc/message.h>
+#include <stdlib.h>
+
+void *GoObjc_GetObjectSuperClassStruct(void *obj) {
+	struct objc_super *s = malloc(sizeof(struct objc_super));
+	s->receiver = obj;
+	s->super_class = class_getSuperclass(object_getClass(obj));
+	return s;
+}
+*/
+import "C"
 import (
 	"github.com/mkrautz/variadic"
 	"math"
@@ -33,7 +48,7 @@ func unpackStruct(val reflect.Value) []uintptr {
 	return memArgs
 }
 
-func (obj object) SendMsg(selector string, args ...interface{}) Object {
+func (obj object) sendMsg(sendFuncName string, selector string, args ...interface{}) Object {
 	// Keep ObjC semantics: messages can be sent to nil objects,
 	// but the response is nil.
 	if obj.ptr == 0 {
@@ -120,8 +135,16 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 		}
 	}
 
-	fc := variadic.NewFunctionCall("objc_msgSend")
-	fc.Words[0] = obj.Pointer()
+	fc := variadic.NewFunctionCall(sendFuncName)
+	if sendFuncName == "objc_msgSend" {
+		fc.Words[0] = obj.Pointer()
+	} else if sendFuncName == "objc_msgSendSuper" {
+		superPtr := C.GoObjc_GetObjectSuperClassStruct(unsafe.Pointer(obj.Pointer()))
+		defer C.free(superPtr)
+		fc.Words[0] = uintptr(superPtr)
+	} else {
+		panic("objc: unknown object.sendMsg sendFuncName")
+	}
 	fc.Words[1] = uintptr(sel)
 
 	if len(memArgs) > 0 {
@@ -155,4 +178,12 @@ func (obj object) SendMsg(selector string, args ...interface{}) Object {
 	}
 
 	return object{ptr: fc.Call()}
+}
+
+func (obj object) SendMsg(selector string, args ...interface{}) Object {
+	return obj.sendMsg("objc_msgSend", selector, args...)
+}
+
+func (obj object) SendSuperMsg(selector string, args ...interface{}) Object {
+	return obj.sendMsg("objc_msgSendSuper", selector, args...)
 }

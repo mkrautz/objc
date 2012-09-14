@@ -18,6 +18,10 @@ type Object interface {
 	// object that is idenfieid by selectorName.
 	SendMsg(selectorName string, args ...interface{}) Object
 
+	// SendSuperMsg is like SendMsg, but sends to the object's
+	// super class instead.
+	SendSuperMsg(selectorName string, args ...interface{}) Object
+
 	// Alloc sends the  "alloc" message to the object.
 	Alloc() Object
 

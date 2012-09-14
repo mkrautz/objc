@@ -34,6 +34,7 @@ var once sync.Once
 func registerTestClass() {
 	once.Do(func() {
 		c := NewClass(SomeObject{})
+		c.AddMethod("setTesting:", (*SomeObject).SetTesting)
 		c.AddMethod("callWithObject:selector:", (*SomeObject).CallWithObjectAndSelector)
 		c.AddMethod("callWithFloat64:", (*SomeObject).CallWithFloat64)
 		c.AddMethod("callWithFloat32:", (*SomeObject).CallWithFloat32)
@@ -48,6 +49,10 @@ func registerTestClass() {
 		c.AddMethod("callWithBool:", (*SomeObject).CallWithBool)
 		RegisterClass(c)
 	})
+}
+
+func (so *SomeObject) SetTesting(t *testing.T) {
+	so.t = t
 }
 
 func (so *SomeObject) CallWithObjectAndSelector(object Object, selector Selector) {
@@ -127,84 +132,84 @@ func (so *SomeObject) CallWithBool(val bool) {
 
 func TestSelectorObjectPassing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithObject:selector:", so, GetSelector("callWithObject:selector:"))
 }
 
 func TestFloat64Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithFloat64:", float64val)
 }
 
 func TestFloat32Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithFloat32:", float32val)
 }
 
 func TestUint64Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithUint64:", uint64val)
 }
 
 func TestUint32Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithUint32:", uint32val)
 }
 
 func TestUint16Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithUint16:", uint16val)
 }
 
 func TestUint8Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithUint8:", uint8val)
 }
 
 func TestInt64Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithInt64:", int64val)
 }
 
 func TestInt32Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithInt32:", int32val)
 }
 
 func TestInt16Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithInt16:", int16val)
 }
 
 func TestInt8Passing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithInt8:", int8val)
 }
 
 func TestBoolPassing(t *testing.T) {
 	registerTestClass()
-	so := &SomeObject{t: t}
-	NewGoInstance("SomeObject", so)
+	so := GetClass("SomeObject").SendMsg("alloc").SendMsg("init")
+	so.SendMsg("setTesting:", t)
 	so.SendMsg("callWithBool:", boolval)
 }

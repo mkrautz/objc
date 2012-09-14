@@ -12,8 +12,15 @@ import (
 
 type IBOutletTester struct {
 	Object `objc:"IBOutletTester : NSObject"`
-
 	Myself Object `objc:"IBOutlet"`
+}
+
+func (ibo *IBOutletTester) MyselfIsNil() bool {
+	return ibo.Myself == nil
+}
+
+func (ibo *IBOutletTester) MyselfIsMyself() bool {
+	return ibo.Myself.Pointer() == ibo.Object.Pointer()
 }
 
 const NSUTF8StringEncoding = 4
@@ -25,18 +32,21 @@ func NSStringFromString(str string) Object {
 
 func TestKeyValueCodingImpl(t *testing.T) {
 	c := NewClass(IBOutletTester{})
+	c.AddMethod("myselfIsNil", (*IBOutletTester).MyselfIsNil)
+	c.AddMethod("myselfIsMyself", (*IBOutletTester).MyselfIsMyself)
 	RegisterClass(c)
 
-	ibo := new(IBOutletTester)
-	NewGoInstance("IBOutletTester", ibo)
+	pool := GetClass("NSAutoreleasePool").SendMsg("alloc").SendMsg("init")
+	defer pool.SendMsg("release")
 
+	ibo := GetClass("IBOutletTester").SendMsg("alloc").SendMsg("init")
 	ibo.SendMsg("setValue:forKey:", ibo, NSStringFromString("Myself").AutoRelease())
 
-	if ibo.Myself == nil {
+	if ibo.SendMsg("myselfIsNil").Bool() {
 		t.Fatal("nil iboutlet, value not properly set for key")
 	}
 
-	if ibo.Myself.Pointer() != ibo.Pointer() {
-		t.Error("value not set, or incorrectly set. myself=%p, struct=%p", ibo)
+	if !ibo.SendMsg("myselfIsMyself").Bool() {
+		t.Error("value not set, or incorrectly set.")
 	}
 }

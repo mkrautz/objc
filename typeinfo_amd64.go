@@ -48,6 +48,8 @@ func typeInfoForType(typ reflect.Type) string {
 		return encFloat
 	case reflect.Float64:
 		return encDouble
+	case reflect.Ptr:
+		return encPtr
 	}
 
 	panic("typeinfo: unhandled/invalid kind " + fmt.Sprintf("%v", kind) + " " + fmt.Sprintf("%v", typ))

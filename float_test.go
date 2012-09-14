@@ -5,6 +5,8 @@
 package objc
 
 import "testing"
+import "reflect"
+import "unsafe"
 
 func TestFloatArgsImplicit(t *testing.T) {
 	expected := 54.0
@@ -76,16 +78,16 @@ func TestFloat64RetGoObject(t *testing.T) {
 	c.AddMethod("float32Returner", (*FloatTester).Float32Returner)
 	RegisterClass(c)
 
-	ft := new(FloatTester)
-	NewGoInstance("FloatTester", ft)
+	ft := GetClass("FloatTester").SendMsg("alloc").SendMsg("init")
+	goFt := reflect.NewAt(reflect.TypeOf(FloatTester{}), unsafe.Pointer(object{ptr: ft.Pointer()}.internalPointer())).Interface().(*FloatTester)
 
-	goAnswer64 := ft.Float64Returner()
+	goAnswer64 := goFt.Float64Returner()
 	objcAnswer64 := ft.SendMsg("float64Returner").Float()
 	if goAnswer64 != objcAnswer64 {
 		t.Errorf("float64: expected %v, got %v", goAnswer64, objcAnswer64)
 	}
 
-	goAnswer32 := ft.Float32Returner()
+	goAnswer32 := goFt.Float32Returner()
 	objcAnswer32 := float32(ft.SendMsg("float32Returner").Float())
 	if goAnswer32 != objcAnswer32 {
 		t.Errorf("float32: expected %v, got %v", goAnswer32, objcAnswer32)
