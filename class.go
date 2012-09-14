@@ -55,6 +55,7 @@ type classInfo struct {
 	typ       reflect.Type
 	methodMap map[string]interface{}
 	refs      map[uintptr]unsafe.Pointer
+	setters   map[string]struct{}
 }
 
 func (ci classInfo) MethodForSelector(sel string) interface{} {
@@ -126,13 +127,14 @@ func NewClass(value interface{}) Class {
 		panic("unable to AllocateClassPair")
 	}
 
-	// Check whether the class has any IBOutlets
-	hasIBOutlets := false
+	// Check whether the class has any IBOutlets, and generate
+	// appropriate setter methods so we can load NIBs on OS X.
+	setters := map[string]struct{}{}
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		if field.Tag.Get("objc") == "IBOutlet" {
 			if field.Type.Implements(objectInterfaceType) {
-				hasIBOutlets = true
+				setters["set" + field.Name + ":"] = struct{}{}
 				break
 			} else {
 				panic("IBOutlets must implement objc.Object")
@@ -140,9 +142,16 @@ func NewClass(value interface{}) Class {
 		}
 	}
 
+	// Register the IBOutlet setters.
+	for setterSelector, _ := range setters {
+		sel := selectorWithName(setterSelector)
+		typeInfo := encVoid + encId + encSelector + encId
+		C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
+	}
+
 	// Register the setValue:forKey: method for our custom IBOutlet handling
-	// if the class has any IBOutlets.
-	if hasIBOutlets {
+	// if the class has any IBOutlets. (Currently only relevant for the iOS runtime)
+	if len(setters) > 0 {
 		sel := selectorWithName("setValue:forKey:")
 		typeInfo := encVoid + encId + encSelector + encId + encId
 		C.GoObjc_ClassAddMethod(ptr, sel, methodCallTarget(), C.CString(typeInfo))
@@ -157,6 +166,7 @@ func NewClass(value interface{}) Class {
 	classMap[className] = classInfo{
 		typ:       reflect.TypeOf(value),
 		methodMap: make(map[string]interface{}),
+		setters:   setters,
 	}
 
 	return object{ptr: uintptr(ptr)}
@@ -189,13 +199,20 @@ func (cls object) className() string {
 
 // AddMethod adds a new method to a Class.
 func (cls object) AddMethod(selector string, fn interface{}) {
+	clsName := cls.className()
+	clsInfo := classMap[clsName]
+
+	// Check if this method has already implicitly been
+	// added by an IBOutlet tagged struct field.
+	if _, isSetter := clsInfo.setters[selector]; isSetter {
+		panic("objc: unable to add method '" + selector + "'; would shadow IBOutlet setter with same name.")
+	}
+
 	sel := selectorWithName(selector)
 	typeInfo := funcTypeInfo(fn)
 	C.GoObjc_ClassAddMethod(unsafe.Pointer(cls.Pointer()), sel, methodCallTarget(), C.CString(typeInfo))
 
 	// Add the method to the class's method map
-	clsName := cls.className()
-	clsInfo := classMap[clsName]
 	clsInfo.methodMap[selector] = fn
 }
 

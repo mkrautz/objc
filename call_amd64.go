@@ -100,44 +100,37 @@ func methodCallTarget() unsafe.Pointer {
 	return unsafe.Pointer(&C.GoObjc_CallTargetFrameSetup)
 }
 
-// setValueForKey implements the logic for the setValue:forKey:
-// method of Go structs exported as Objective-C classes.
+// setIBOutletValue attempts to assign the Objective-C object represented
+// by 'value' to the field named 'name' in the Go struct represented by 'obj'.
 //
-// This function is only used if the exported struct has any
-// fields tagged with `objc:"IBOutlet"`.  If no fields are
-// tagged as such, the regular NSObject implementatin of the
-// setValue:forKey: method is used.
-func setValueForKey(obj reflect.Value, fetcher *amd64frameFetcher) {
-	// We only support Object values, so fetching
-	// Ints here is OK.
-	valuePtr := fetcher.Int()
-	keyPtr := fetcher.Int()
-
-	// We don't export any NSString-based functionality
-	// in package objc, except for the String() method
-	// on object.  It calls the object's decription method,
-	// which for NSStrings returns the string itself (or at
-	// least something that has been good enough for now!).
-	keyName := object{ptr: keyPtr}.String()
-
-	// Find an IBOutlet with the name keyName
+// The function sends the 'retain' message to the Objective-C object represented
+// by 'value' if the assignment was successful.
+//
+// If the assignment operation fails, this function will raise a runtime panic.
+func setIBOutletValue(obj reflect.Value, name string, value Object) {
+	// Find an IBOutlet with the name keyName.
 	val := obj.Elem()
 	typ := val.Type()
 	fieldIdx := -1
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		if field.Tag.Get("objc") == "IBOutlet" && field.Type.Implements(objectInterfaceType) {
-			if field.Name == keyName {
+			if field.Name == name {
 				fieldIdx = i
 				break
 			}
 		}
 	}
-	if fieldIdx != -1 {
-		fieldVal := val.Field(fieldIdx)
-		id := object{ptr: valuePtr}
-		fieldVal.Set(reflect.ValueOf(id))
+
+	// If we couldn't find a matching field, simply panic.
+	// We should only run into this is there is a bug in the package.
+	if fieldIdx == -1 {
+		panic("objc: bad setter for IBOutlet field '" + name + "'")
 	}
+	
+	fieldVal := val.Field(fieldIdx)
+	fieldVal.Set(reflect.ValueOf(value))
+	value.Retain()
 }
 
 //export goMethodCallEntryPoint
@@ -179,10 +172,31 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	}
 	objVal := reflect.NewAt(clsInfo.typ, internalPtr)
 
+	// Check if the invoked selector is a setter for IBOutlets.
+	if _, isSetter := clsInfo.setters[sel]; isSetter {
+		valuePtr := fetcher.Int()
+		keyName := sel[3:] // strip 'set'
+		keyName = keyName[0:len(keyName)-1] // strip ':'
+		setIBOutletValue(objVal, keyName, object{ptr: valuePtr})
+		return 0
+	}
+
 	// Our own internal override for setValue:forKey: in order
-	// to support key-value coding.
+	// to support key-value coding. (For IBOutlets on iOS)
 	if sel == "setValue:forKey:" && method == nil {
-		setValueForKey(objVal, &fetcher)
+		// We only support Object values, so fetching
+		// Ints here is OK.
+		valuePtr := fetcher.Int()
+		keyPtr := fetcher.Int()
+
+		// We don't export any NSString-based functionality
+		// in package objc, except for the String() method
+		// on object.  It calls the object's decription method,
+		// which for NSStrings returns the string itself (or at
+		// least something that has been good enough for now!).
+		keyName := object{ptr: keyPtr}.String()
+
+		setIBOutletValue(objVal, keyName, object{ptr: valuePtr})
 		return 0
 	}
 

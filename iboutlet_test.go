@@ -8,7 +8,20 @@ import (
 	"reflect"
 	"testing"
 	"unsafe"
+	"sync"
+	"strings"
 )
+
+var iboutletOnce sync.Once
+
+func registerIBOutletTestClass() {
+	iboutletOnce.Do(func() {
+		c := NewClass(IBOutletTester{})
+		c.AddMethod("myselfIsNil", (*IBOutletTester).MyselfIsNil)
+		c.AddMethod("myselfIsMyself", (*IBOutletTester).MyselfIsMyself)
+		RegisterClass(c)
+	})
+}
 
 type IBOutletTester struct {
 	Object `objc:"IBOutletTester : NSObject"`
@@ -30,11 +43,8 @@ func NSStringFromString(str string) Object {
 	return GetClass("NSString").SendMsg("alloc").SendMsg("initWithBytes:length:encoding:", hdrp.Data, hdrp.Len, NSUTF8StringEncoding)
 }
 
-func TestKeyValueCodingImpl(t *testing.T) {
-	c := NewClass(IBOutletTester{})
-	c.AddMethod("myselfIsNil", (*IBOutletTester).MyselfIsNil)
-	c.AddMethod("myselfIsMyself", (*IBOutletTester).MyselfIsMyself)
-	RegisterClass(c)
+func TestIBOutletKeyValueCodingImpl(t *testing.T) {
+	registerIBOutletTestClass()
 
 	pool := GetClass("NSAutoreleasePool").SendMsg("alloc").SendMsg("init")
 	defer pool.SendMsg("release")
@@ -47,6 +57,53 @@ func TestKeyValueCodingImpl(t *testing.T) {
 	}
 
 	if !ibo.SendMsg("myselfIsMyself").Bool() {
-		t.Error("value not set, or incorrectly set.")
+		t.Fatal("value not set, or incorrectly set.")
 	}
+}
+
+func TestIBOutletSetter(t *testing.T) {
+	registerIBOutletTestClass()
+
+	pool := GetClass("NSAutoreleasePool").SendMsg("alloc").SendMsg("init")
+	defer pool.SendMsg("release")
+
+	ibo := GetClass("IBOutletTester").SendMsg("alloc").SendMsg("init")
+	ibo.SendMsg("setMyself:", ibo)
+
+	if ibo.SendMsg("myselfIsNil").Bool() {
+		t.Fatal("nil iboutlet, value not properly set for key")
+	}
+
+	if !ibo.SendMsg("myselfIsMyself").Bool() {
+		t.Fatal("value not set, or incorrectly set.")
+	}
+}
+
+type Shadow struct {
+	Object `objc:"Shadow : NSObject"`
+	Number Object `objc:"IBOutlet"`
+}
+
+func (s *Shadow) SetNumber(magicNumber Object) {
+	s.Number = magicNumber.Retain()
+}
+
+func TestIBOutletShadowPanic(t *testing.T) {
+	defer func() {
+		str := recover()
+		if str == nil {
+			t.Fatal("expected panic")
+		}
+		msg, ok := str.(string)
+		if !ok {
+			t.Fatal("expectd string return from recover()")
+		}
+		if !strings.Contains(msg, "would shadow IBOutlet") {
+			t.Fatal("expected shadow panic")
+		}
+	}()
+
+	c := NewClass(Shadow{})
+	c.AddMethod("setNumber:", (*Shadow).SetNumber)
+	RegisterClass(c)
 }

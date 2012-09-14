@@ -21,10 +21,14 @@ func init() {
 
 type AppDelegate struct {
 	objc.Object `objc:"GOAppDelegate : NSObject"`
+	Window objc.Object `objc:"IBOutlet"`
 }
 
 func (delegate *AppDelegate) ApplicationDidFinishLaunching(notification objc.Object) {
 	log.Printf("applicationDidFinishLaunching! %v", notification)
+
+	log.Printf("Object: %v", delegate.Object)
+	log.Printf("Window: %v", delegate.Window)
 
 	mainMenu := NSSharedApplication().MainMenu()
 	log.Printf("%v", mainMenu)
