@@ -6,10 +6,10 @@ package objc
 
 import (
 	"reflect"
+	"strings"
+	"sync"
 	"testing"
 	"unsafe"
-	"sync"
-	"strings"
 )
 
 var iboutletOnce sync.Once

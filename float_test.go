@@ -9,37 +9,37 @@ import "reflect"
 import "unsafe"
 
 func TestFloatArgsImplicit(t *testing.T) {
-	expected := 54.0
+	expected := 50.0
 	number := GetClass("NSNumber").SendMsg("alloc").SendMsg("initWithFloat:", expected)
 	str := number.String()
-	if str != "54" {
+	if str != "50" {
 		t.Errorf("expected %v, got %v", expected, str)
 	}
 }
 
 func TestDoubleArgsImplicit(t *testing.T) {
-	expected := 54.0
+	expected := 51.0
 	number := GetClass("NSNumber").SendMsg("alloc").SendMsg("initWithDouble:", expected)
 	str := number.String()
-	if str != "54" {
+	if str != "51" {
 		t.Errorf("expected %v, got %v", expected, str)
 	}
 }
 
 func TestFloatArgsExplicit(t *testing.T) {
-	expected := float32(54.0)
+	expected := float32(52.0)
 	number := GetClass("NSNumber").SendMsg("alloc").SendMsg("initWithFloat:", expected)
 	str := number.String()
-	if str != "54" {
+	if str != "52" {
 		t.Errorf("expected %v, got %v", expected, str)
 	}
 }
 
 func TestDoubleArgsExplicit(t *testing.T) {
-	expected := float64(54.0)
+	expected := float64(53.0)
 	number := GetClass("NSNumber").SendMsg("alloc").SendMsg("initWithDouble:", expected)
 	str := number.String()
-	if str != "54" {
+	if str != "53" {
 		t.Errorf("expected %v, got %v", expected, str)
 	}
 }
@@ -53,7 +53,7 @@ func TestDoubleReturnValue(t *testing.T) {
 }
 
 func TestFloatReturnValue(t *testing.T) {
-	in := float64(54.0)
+	in := float64(55.0)
 	out := GetClass("NSNumber").SendMsg("alloc").SendMsg("initWithDouble:", in).SendMsg("floatValue")
 	if out.Float() != in {
 		t.Errorf("expected %v, got %v", in, out.Float())

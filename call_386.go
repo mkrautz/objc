@@ -1,4 +1,4 @@
-// Copyright (c) 2012 The 'objc' Package Authors. All rights reserved.
+// Copyright (c) 2013 The 'objc' Package Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package objc
 
 /*
 extern unsigned long GoObjc_CallTargetFrameSetup;
+extern void GoObjc_Fst(void *);
 */
 import "C"
 import (
@@ -14,83 +15,32 @@ import (
 	"unsafe"
 )
 
-// amd64frame represents the layout of the
-// register set once it's pushed onto the stack
-// when the Objective-C runtime calls our call target.
-type amd64frame struct {
-	rdi  uintptr
-	rsi  uintptr
-	rdx  uintptr
-	rcx  uintptr
-	r8   uintptr
-	r9   uintptr
-	xmm0 uintptr
-	xmm1 uintptr
-	xmm2 uintptr
-	xmm3 uintptr
-	xmm4 uintptr
-	xmm5 uintptr
-	xmm6 uintptr
-	xmm7 uintptr
+// i386frameFetcher implements the logic needed
+// to fetch arguments from a i386 stack frame.
+type i386frameFetcher struct {
+	args *[100]uintptr
+	off  int
 }
 
-// amd64frameFetcher implements the logic needed
-// to fetch arguments from an amd64frame in the
-// correct order.
-type amd64frameFetcher struct {
-	frame  *amd64frame
-	ints   *[6]uintptr
-	floats *[8]uintptr
-	stack  *[10]uintptr
-	ioff   int
-	foff   int
-	soff   int
-}
-
-// frameFetcher returns a new amd64frameFetcher that
-// wraps an existing amd64 frame.
-func frameFetcher(frame *amd64frame) amd64frameFetcher {
-	ints := (*[6]uintptr)(unsafe.Pointer(frame))
-	floats := (*[8]uintptr)(unsafe.Pointer(&frame.xmm0))
-	stack := (*[10]uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&frame.xmm7)) + 8))
-	return amd64frameFetcher{
-		ints:   ints,
-		floats: floats,
-		stack:  stack,
+// frameFetcher returns a new i386frameFetcher that
+// wraps an i386 stack frame.
+func frameFetcher(stack uintptr) i386frameFetcher {
+	frame := (*[100]uintptr)(unsafe.Pointer(stack))
+	return i386frameFetcher{
+		args: frame,
+		off:  0,
 	}
 }
 
-// Int returns the next integer argument from the amd64frame
-// wrapped by the frame fetcher.
-func (ff *amd64frameFetcher) Int() uintptr {
-	if ff.ioff < len(ff.ints) {
-		val := ff.ints[ff.ioff]
-		ff.ioff++
+// Next returns the next argument from the wrapped
+// i386 stack frame.
+func (ff *i386frameFetcher) Next() uintptr {
+	if ff.off < len(ff.args) {
+		val := ff.args[ff.off]
+		ff.off++
 		return val
 	}
-	return ff.Stack()
-}
-
-// Float returns the next floating point argument from the amd64
-// frame wrapped by the frame fetcher.
-func (ff *amd64frameFetcher) Float() uintptr {
-	if ff.foff < len(ff.floats) {
-		val := ff.floats[ff.foff]
-		ff.foff++
-		return val
-	}
-	return ff.Stack()
-}
-
-// Stack returns the next stack argument from amd64
-// frame wrapped by the frame fetcher.
-func (ff *amd64frameFetcher) Stack() uintptr {
-	if ff.soff < len(ff.stack) {
-		val := ff.stack[ff.soff]
-		ff.soff++
-		return val
-	}
-	panic("call: argument list exhausted")
+	panic("invalid fetch")
 }
 
 // methodCallTarget returns a pointer to the entry point
@@ -135,11 +85,28 @@ func setIBOutletValue(obj reflect.Value, name string, value Object) {
 
 //export goMethodCallEntryPoint
 func goMethodCallEntryPoint(p uintptr) uintptr {
-	frame := (*amd64frame)(unsafe.Pointer(p))
-	fetcher := frameFetcher(frame)
+	fetcher := frameFetcher(p)
 
-	obj := object{ptr: fetcher.Int()}
-	sel := stringFromSelector(unsafe.Pointer(fetcher.Int()))
+	// Hijack the stack pointer to perform a little
+	// float-return magic. We have to use the 387 stack
+	// to return float values.
+	//
+	// We re-use the stack slot for this function's
+	// p parameter as a pointer to a 64-bit 'double precision'
+	// floating point value that we will move to the st0
+	// register (where floating point return values should go.)
+	//
+	// For non-float cases, this slot should be zeroed out
+	// so we know not to touch the 387 floating point stack.
+	stk := (*[10]uintptr)(unsafe.Pointer(p - 4))
+	stk[0] = 0
+
+	// Skip, skip.
+	fetcher.Next()
+	fetcher.Next()
+
+	obj := object{ptr: fetcher.Next()}
+	sel := stringFromSelector(unsafe.Pointer(fetcher.Next()))
 
 	clsName := object{ptr: getObjectClass(obj).Pointer()}.className()
 	clsInfo := classMap[clsName]
@@ -174,7 +141,7 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 
 	// Check if the invoked selector is a setter for IBOutlets.
 	if _, isSetter := clsInfo.setters[sel]; isSetter {
-		valuePtr := fetcher.Int()
+		valuePtr := fetcher.Next()
 		keyName := sel[3:]                    // strip 'set'
 		keyName = keyName[0 : len(keyName)-1] // strip ':'
 		setIBOutletValue(objVal, keyName, object{ptr: valuePtr})
@@ -186,8 +153,8 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 	if sel == "setValue:forKey:" && method == nil {
 		// We only support Object values, so fetching
 		// Ints here is OK.
-		valuePtr := fetcher.Int()
-		keyPtr := fetcher.Int()
+		valuePtr := fetcher.Next()
+		keyPtr := fetcher.Next()
 
 		// We don't export any NSString-based functionality
 		// in package objc, except for the String() method
@@ -221,48 +188,58 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 		typ := mt.In(i)
 
 		if typ.Implements(objectInterfaceType) {
-			args = append(args, reflect.ValueOf(object{ptr: fetcher.Int()}))
+			args = append(args, reflect.ValueOf(object{ptr: fetcher.Next()}))
 			continue
 		} else if typ.Implements(selectorInterfaceType) {
-			sel := selector(stringFromSelector(unsafe.Pointer(fetcher.Int())))
+			sel := selector(stringFromSelector(unsafe.Pointer(fetcher.Next())))
 			args = append(args, reflect.ValueOf(sel))
 			continue
 		}
 
 		switch typ.Kind() {
 		case reflect.Int:
-			args = append(args, reflect.ValueOf(int(fetcher.Int())))
+			args = append(args, reflect.ValueOf(int(fetcher.Next())))
 		case reflect.Int8:
-			args = append(args, reflect.ValueOf(int8(fetcher.Int())))
+			args = append(args, reflect.ValueOf(int8(fetcher.Next())))
 		case reflect.Int16:
-			args = append(args, reflect.ValueOf(int16(fetcher.Int())))
+			args = append(args, reflect.ValueOf(int16(fetcher.Next())))
 		case reflect.Int32:
-			args = append(args, reflect.ValueOf(int32(fetcher.Int())))
+			args = append(args, reflect.ValueOf(int32(fetcher.Next())))
 		case reflect.Int64:
-			args = append(args, reflect.ValueOf(int64(fetcher.Int())))
+			v1 := uint64(fetcher.Next())
+			v2 := uint64(fetcher.Next())
+			u64 := (v1 & 0xffffffff) | ((v2 << 32) & 0xffffffff00000000)
+			args = append(args, reflect.ValueOf(int64(u64)))
 
 		case reflect.Uint8:
-			args = append(args, reflect.ValueOf(uint8(fetcher.Int())))
+			args = append(args, reflect.ValueOf(uint8(fetcher.Next())))
 		case reflect.Uint16:
-			args = append(args, reflect.ValueOf(uint16(fetcher.Int())))
+			args = append(args, reflect.ValueOf(uint16(fetcher.Next())))
 		case reflect.Uint32:
-			args = append(args, reflect.ValueOf(uint32(fetcher.Int())))
+			args = append(args, reflect.ValueOf(uint32(fetcher.Next())))
 		case reflect.Uint64:
-			args = append(args, reflect.ValueOf(uint64(fetcher.Int())))
+			v1 := uint64(fetcher.Next())
+			v2 := uint64(fetcher.Next())
+			u64 := (v1 & 0xffffffff) | ((v2 << 32) & 0xffffffff00000000)
+			args = append(args, reflect.ValueOf(u64))
 		case reflect.Uintptr:
-			args = append(args, reflect.ValueOf(fetcher.Int()))
+			args = append(args, reflect.ValueOf(fetcher.Next()))
 
 		case reflect.Float32:
-			args = append(args, reflect.ValueOf(math.Float32frombits(uint32(fetcher.Float()))))
+			f32 := math.Float32frombits(uint32(fetcher.Next()))
+			args = append(args, reflect.ValueOf(f32))
 		case reflect.Float64:
-			args = append(args, reflect.ValueOf(math.Float64frombits(uint64(fetcher.Float()))))
+			v1 := uint64(fetcher.Next())
+			v2 := uint64(fetcher.Next())
+			u64 := (v1 & 0xffffffff) | ((v2 << 32) & 0xffffffff00000000)
+			args = append(args, reflect.ValueOf(math.Float64frombits(u64)))
 
 		case reflect.Bool:
-			val := fetcher.Int() != 0
+			val := fetcher.Next() != 0
 			args = append(args, reflect.ValueOf(val))
 
 		case reflect.Ptr:
-			ptrAddr := unsafe.Pointer(uintptr(fetcher.Int()))
+			ptrAddr := unsafe.Pointer(uintptr(fetcher.Next()))
 			args = append(args, reflect.NewAt(typ.Elem(), ptrAddr))
 
 		default:
@@ -292,12 +269,13 @@ func goMethodCallEntryPoint(p uintptr) uintptr {
 			} else {
 				return 0
 			}
-		case reflect.Float32:
-			frame.xmm0 = uintptr(math.Float32bits(float32(val.Float())))
-			return 1
-		case reflect.Float64:
-			frame.xmm0 = uintptr(math.Float64bits(val.Float()))
-			return 1
+		case reflect.Float32, reflect.Float64:
+			f64 := val.Float()
+			stk[0] = p + 8
+			u64 := math.Float64bits(f64)
+			stk[3] = uintptr(u64 & 0xffffffff)
+			stk[4] = uintptr((u64 >> 32) & 0xffffffff)
+			return 0
 		case reflect.Interface:
 			if obj, ok := val.Interface().(Object); ok {
 				return obj.Pointer()

@@ -76,10 +76,10 @@ func typeInfoForMethod(obj Object, selector string) string {
 	return C.GoString(C.GoObjc_TypeInfoForMethod(unsafe.Pointer(cls.Pointer()), sel))
 }
 
-// simpleTypeInfoForMethod returns a simplified typeInfo representation
+// simplifyTypeInfo returns a simplified typeInfo representation
 // with C specifiers and stack information stripped out.
-func simpleTypeInfoForMethod(obj Object, selector string) string {
-	ti := typeInfoForMethod(obj, selector)
+func simplifyTypeInfo(typeInfo string) string {
+	ti := typeInfo
 	sti := []byte{}
 	for i := 0; i < len(ti); i++ {
 		if ti[i] >= '0' && ti[i] <= '9' {
@@ -95,4 +95,12 @@ func simpleTypeInfoForMethod(obj Object, selector string) string {
 		sti = append(sti, ti[i])
 	}
 	return string(sti)
+}
+
+// simpleTypeInfoForMethod fetches the type info for the method
+// identified by obj's class and the given selector and returns
+// it in a simplified form produced by the simplifyTypeInfo function.
+func simpleTypeInfoForMethod(obj Object, selector string) string {
+	ti := typeInfoForMethod(obj, selector)
+	return simplifyTypeInfo(ti)
 }

@@ -134,7 +134,7 @@ func NewClass(value interface{}) Class {
 		field := typ.Field(i)
 		if field.Tag.Get("objc") == "IBOutlet" {
 			if field.Type.Implements(objectInterfaceType) {
-				setters["set" + field.Name + ":"] = struct{}{}
+				setters["set"+field.Name+":"] = struct{}{}
 				break
 			} else {
 				panic("IBOutlets must implement objc.Object")
