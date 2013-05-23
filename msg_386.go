@@ -32,12 +32,21 @@ func unpackStruct(val reflect.Value) []uintptr {
 		v := val.Field(i)
 		kind := v.Kind()
 		switch kind {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			memArgs = append(memArgs, uintptr(v.Int()))
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 			memArgs = append(memArgs, uintptr(v.Uint()))
-		case reflect.Float32, reflect.Float64:
-			memArgs = append(memArgs, uintptr(math.Float64bits(v.Float())))
+		case reflect.Int64, reflect.Uint64:
+			i64 := v.Uint()
+			memArgs = append(memArgs, uintptr(i64 & 0xffffffff))
+			memArgs = append(memArgs, uintptr((i64 >> 32) & 0xffffffff))
+		case reflect.Float32:
+			u32 := math.Float32bits(float32(v.Float()))
+			memArgs = append(memArgs, uintptr(u32))
+		case reflect.Float64:
+			u64 := math.Float64bits(v.Float())
+			memArgs = append(memArgs, uintptr(u64&0xffffffff))
+			memArgs = append(memArgs, uintptr((u64>>32)&0xffffffff))
 		case reflect.Ptr:
 			memArgs = append(memArgs, val.Pointer())
 		case reflect.Struct:
@@ -61,6 +70,7 @@ func sendMsg(obj Object, sendFuncName string, selector string, restArgs ...inter
 	}
 
 	args := []uintptr{}
+	structRoots := []*[]uintptr{}
 	typeInfo := simpleTypeInfoForMethod(obj, selector)
 
 	for i, arg := range restArgs {
@@ -121,7 +131,10 @@ func sendMsg(obj Object, sendFuncName string, selector string, restArgs ...inter
 				args = append(args, uintptr(val.Uint()))
 			case reflect.Struct:
 				structArgs := unpackStruct(val)
-				args = append(args, structArgs...)
+				structArgsPtr := &structArgs
+				hdrp := (*reflect.SliceHeader)(unsafe.Pointer(structArgsPtr))
+				structRoots = append(structRoots, structArgsPtr)
+				args = append(args, hdrp.Data)
 			default:
 				panic("unhandled kind")
 			}
