@@ -30,18 +30,18 @@ func TestStructPassing(t *testing.T) {
 			Y: 0,
 		},
 		NSSize{
-			Width: 100,
-			Height: 100,
+			Width: 500,
+			Height: 500,
 		},
 	}
 
-	obj := GetClass("NSWindow").Alloc().
-			SendMsg("initWithContentRect:styleMask:backing:defer:",
-				rect,  // rect
-				0,     // windowStyle = default
-				2,     // bufferingType = NSBackingStorebuffered
-				false) // deferCreation
+	obj := GetClass("NSValue").SendMsg("valueWithRect:", rect)
 	if obj.Pointer() == 0 {
 		t.Fatalf("unable to create NSWindow, got nil ptr")
+	}
+	want := "NSRect: {{0, 0}, {500, 500}}"
+	got := obj.String()
+	if got != want {
+		t.Fatalf("bad NSValue was constructed: got %v, want %v", got, want)
 	}
 }

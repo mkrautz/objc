@@ -5,8 +5,7 @@
 package objc
 
 /*
-// fixme(mkrautz): AppKit is linked in for struct_test.go
-#cgo LDFLAGS: -lobjc -framework Foundation -framework AppKit
+#cgo LDFLAGS: -lobjc -framework Foundation
 #define __OBJC2__ 1
 #include <objc/runtime.h>
 #include <objc/message.h>
