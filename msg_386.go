@@ -70,7 +70,6 @@ func sendMsg(obj Object, sendFuncName string, selector string, restArgs ...inter
 	}
 
 	args := []uintptr{}
-	structRoots := []*[]uintptr{}
 	typeInfo := simpleTypeInfoForMethod(obj, selector)
 
 	for i, arg := range restArgs {
@@ -131,10 +130,7 @@ func sendMsg(obj Object, sendFuncName string, selector string, restArgs ...inter
 				args = append(args, uintptr(val.Uint()))
 			case reflect.Struct:
 				structArgs := unpackStruct(val)
-				structArgsPtr := &structArgs
-				hdrp := (*reflect.SliceHeader)(unsafe.Pointer(structArgsPtr))
-				structRoots = append(structRoots, structArgsPtr)
-				args = append(args, hdrp.Data)
+				args = append(args, structArgs...)
 			default:
 				panic("unhandled kind")
 			}
