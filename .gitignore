@@ -1,4 +1,9 @@
 demo/demo
 demo/demo-clang
 demo/demo.app/Contents/MacOS/demo
+
+demo-ios/demo-ios
+demo-ios/demo.app/demo
+demo-ios/demo.app/MainWindow.nib
+
 .DS_Store
